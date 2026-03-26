@@ -56,15 +56,15 @@ const RegistrationPage = () => {
       if (!activeAuction) throw new Error("No active auction available for registration.");
 
       // Check if mobile already exists
-      const { data: existingPlayer, error: checkError } = await supabase
+      const { data: existingPlayers, error: checkError } = await supabase
         .from('players')
         .select('id')
         .eq('mobile', formData.mobile)
-        .maybeSingle();
+        .limit(1);
 
       if (checkError) throw checkError;
-      if (existingPlayer) {
-        throw new Error("A player with this mobile number is already registered.");
+      if (existingPlayers && existingPlayers.length > 0) {
+        throw new Error("Already registered with this mobile number. Please contact the auction owner.");
       }
 
       // Upload Images
