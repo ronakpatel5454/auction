@@ -18,17 +18,19 @@ const PlayersPage = React.lazy(() => import('./pages/PlayersPage'));
 const PlayerProfilePage = React.lazy(() => import('./pages/PlayerProfilePage'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 const AdminPlayersPage = React.lazy(() => import('./pages/AdminPlayersPage'));
+const AuctionPage = React.lazy(() => import('./pages/AuctionPage'));
 
 function App() {
   return (
     <div className="app-container">
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<ProtectedRoute><LandingPage /></ProtectedRoute>} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/players" element={<ProtectedRoute><PlayersPage /></ProtectedRoute>} />
           <Route path="/player/:id" element={<ProtectedRoute><PlayerProfilePage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          <Route path="/auction" element={<ProtectedRoute><AuctionPage /></ProtectedRoute>} />
           <Route path="/admin-players" element={<ProtectedRoute><AdminPlayersPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>

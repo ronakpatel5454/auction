@@ -136,6 +136,11 @@ const AdminPlayersPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('cap_admin_auth');
+    window.location.reload();
+  };
+
   if (!isAuthenticated) return <Navigate to="/admin" replace />;
   if (loading) return <Loader message="LOADING ADMIN PLAYERS..." />;
 
@@ -198,11 +203,15 @@ const AdminPlayersPage = () => {
       <PageHeader title="Player Management" showLogos={false} />
       
       <main className="container" style={{ padding: '2rem 1rem', zIndex: 1, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ color: 'var(--text-main)', margin: 0 }}>Active Auction: {activeAuction ? activeAuction.auction_name : 'None'}</h2>
           </div>
-          <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Back to Admin</Link>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <Link to="/players" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>View Roster</Link>
+            <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Admin</Link>
+            <button onClick={handleLogout} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Logout</button>
+          </div>
         </div>
 
         <div className="glass-panel" style={{ padding: '2rem' }}>

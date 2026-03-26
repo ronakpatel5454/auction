@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -103,6 +104,11 @@ const PlayersPage = () => {
     setCurrentPage(1);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('cap_admin_auth');
+    window.location.reload();
+  };
+
   if (loading) return <Loader message="LOADING PLAYERS..." />;
 
   const totalPages = Math.ceil(filteredPlayers.length / playersPerPage);
@@ -119,6 +125,12 @@ const PlayersPage = () => {
       />
 
       <main className="container" style={{ flex: 1, padding: '2rem 1rem 4rem', zIndex: 1, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <Link to="/admin" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Admin</Link>
+          <Link to="/admin-players" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Manage Players</Link>
+          <button onClick={handleLogout} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Logout</button>
+        </div>
+
         {!activeAuction ? (
           <EmptyState
             title="No Active Auction"
