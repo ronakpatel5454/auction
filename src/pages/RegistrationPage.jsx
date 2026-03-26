@@ -250,11 +250,12 @@ const RegistrationPage = () => {
                   )}
                   {activeAuction.qr_code_url && (
                     <>
-                      <p style={{ marginBottom: '1.5rem', color: 'var(--text-main)', fontSize: '1.1rem' }}>Please scan the QR Code below to securely complete your registration fee payment.</p>
-                      <img 
-                        src={activeAuction.qr_code_url} 
-                        alt="Payment QR Code for Registration" 
-                        style={{ maxWidth: '280px', width: '100%', borderRadius: '12px', border: '3px solid var(--accent-gold)', boxShadow: '0 8px 30px rgba(255, 215, 0, 0.15)' }} 
+                      <p style={{ marginBottom: '1.5rem', color: 'var(--text-main)', fontSize: '1.1rem' }}>Scan below QR code to complete your registration fee payment.</p>
+                      <p style={{ marginBottom: '1.5rem', color: 'var(--text-main)', fontSize: '1.1rem' }}>Send screenshot of payment to the tournament Owner.</p>
+                      <img
+                        src={activeAuction.qr_code_url}
+                        alt="Payment QR Code for Registration"
+                        style={{ maxWidth: '280px', width: '100%', borderRadius: '12px', border: '3px solid var(--accent-gold)', boxShadow: '0 8px 30px rgba(255, 215, 0, 0.15)' }}
                       />
                     </>
                   )}

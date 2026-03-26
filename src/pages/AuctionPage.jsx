@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
-import { uploadToCloudinary } from '../services/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
 import { Link } from 'react-router-dom';
 import { Loader } from '../components/Loader';
@@ -100,9 +100,16 @@ const AuctionPage = () => {
       let qr_code_url = editingAuction ? editingAuction.qr_code_url : null;
 
       if (formData.logo) {
+        if (auction_logo) {
+          await deleteFromCloudinary(auction_logo);
+        }
         auction_logo = await uploadToCloudinary(formData.logo);
       }
+      
       if (formData.qr_code) {
+        if (qr_code_url) {
+          await deleteFromCloudinary(qr_code_url);
+        }
         qr_code_url = await uploadToCloudinary(formData.qr_code);
       }
 
