@@ -1,22 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { uploadToCloudinary } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
 import { Link } from 'react-router-dom';
+import { Loader } from '../components/Loader';
 
 const AuctionPage = () => {
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [formError, setFormError] = useState('');
 
-  const [formData, setFormData] = useState({
+  const [auctionsList, setAuctionsList] = useState([]);
+  const [editingAuction, setEditingAuction] = useState(null);
+
+  const fileInputRef = useRef(null);
+  const qrInputRef = useRef(null);
+
+  const initialFormState = {
     auction_name: '',
     auction_code: '',
     auction_date: '',
     venue: '',
     status: 'draft',
-    logo: null
-  });
+    logo: null,
+    qr_code: null,
+    per_player_fees: ''
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  const fetchAuctions = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setAuctionsList(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuctions();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -27,6 +60,35 @@ const AuctionPage = () => {
     }
   };
 
+  const handleEditClick = (auction) => {
+    setEditingAuction(auction);
+    setFormData({
+      auction_name: auction.auction_name || '',
+      auction_code: auction.auction_code || '',
+      auction_date: auction.auction_date || '',
+      venue: auction.venue || '',
+      status: auction.status || 'draft',
+      per_player_fees: auction.per_player_fees || '',
+      logo: null, // Don't reload file objects
+      qr_code: null
+    });
+    setSuccessMsg('');
+    setFormError('');
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (qrInputRef.current) qrInputRef.current.value = "";
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAuction(null);
+    setFormData(initialFormState);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (qrInputRef.current) qrInputRef.current.value = "";
+    setSuccessMsg('');
+    setFormError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -34,36 +96,56 @@ const AuctionPage = () => {
     setSubmitting(true);
 
     try {
-      let auction_logo = null;
+      let auction_logo = editingAuction ? editingAuction.auction_logo : null;
+      let qr_code_url = editingAuction ? editingAuction.qr_code_url : null;
+
       if (formData.logo) {
         auction_logo = await uploadToCloudinary(formData.logo);
       }
+      if (formData.qr_code) {
+        qr_code_url = await uploadToCloudinary(formData.qr_code);
+      }
 
-      const { data, error } = await supabase
-        .from('auctions')
-        .insert([{
-          auction_name: formData.auction_name,
-          auction_code: formData.auction_code,
-          auction_date: formData.auction_date || null,
-          venue: formData.venue || null,
-          status: formData.status,
-          auction_logo
-        }]);
+      const payload = {
+        auction_name: formData.auction_name,
+        auction_code: formData.auction_code,
+        auction_date: formData.auction_date || null,
+        venue: formData.venue || null,
+        status: formData.status,
+        per_player_fees: formData.per_player_fees ? parseFloat(formData.per_player_fees) : null,
+        auction_logo,
+        qr_code_url
+      };
 
-      if (error) throw error;
+      if (editingAuction) {
+        // UPDATE
+        const { error } = await supabase
+          .from('auctions')
+          .update(payload)
+          .eq('id', editingAuction.id);
 
-      setSuccessMsg(`Auction "${formData.auction_name}" created successfully!`);
-      setFormData({
-        auction_name: '',
-        auction_code: '',
-        auction_date: '',
-        venue: '',
-        status: 'draft',
-        logo: null
-      });
+        if (error) throw error;
+        setSuccessMsg(`Auction "${formData.auction_name}" updated successfully!`);
+      } else {
+        // INSERT
+        const { error } = await supabase
+          .from('auctions')
+          .insert([payload]);
+
+        if (error) throw error;
+        setSuccessMsg(`Auction "${formData.auction_name}" created successfully!`);
+      }
+
+      setFormData(initialFormState);
+      setEditingAuction(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (qrInputRef.current) qrInputRef.current.value = "";
+      
+      await fetchAuctions(); // Refresh list
+
     } catch (err) {
       console.error(err);
-      setFormError(err.message || 'Failed to create auction');
+      setFormError(err.message || 'Failed to save auction. Ensure QR Code column exists.');
     } finally {
       setSubmitting(false);
     }
@@ -72,15 +154,23 @@ const AuctionPage = () => {
   return (
     <div className="flex-col min-h-screen">
       <div className="spotlight"></div>
-      <PageHeader title="Auction Management" subtitle="Create and Configure Auctions" showLogos={false} />
+      <PageHeader title="Auction Management" subtitle="Create, Edit, and Manage Events" showLogos={false} />
       
-      <main className="container" style={{ padding: '2rem 1rem', zIndex: 1, position: 'relative' }}>
+      <main className="container" style={{ padding: '2rem 1rem 4rem', zIndex: 1, position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '2rem' }}>
           <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>← Back to Admin</Link>
         </div>
 
-        <div className="glass-panel" style={{ padding: '2.5rem', maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ color: 'var(--accent-gold)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Create New Auction</h2>
+        {/* TOP FORM SECTION */}
+        <div className="glass-panel" style={{ padding: '2.5rem', maxWidth: '800px', margin: '0 auto 3rem' }}>
+          <h2 style={{ color: 'var(--accent-gold)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {editingAuction ? 'Edit Auction' : 'Create New Auction'}
+            {editingAuction && (
+              <button type="button" onClick={handleCancelEdit} className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
+                Cancel Edit
+              </button>
+            )}
+          </h2>
           
           {successMsg && <div style={{ background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--accent-green)', color: 'var(--accent-green)', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem' }}>{successMsg}</div>}
           {formError && <div style={{ background: 'rgba(255,0,0,0.1)', border: '1px solid #ff4444', color: '#ff4444', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem' }}>{formError}</div>}
@@ -93,7 +183,7 @@ const AuctionPage = () => {
               </div>
               <div className="form-group">
                 <label className="form-label">Auction Code * (Unique)</label>
-                <input required type="text" name="auction_code" value={formData.auction_code} onChange={handleChange} className="form-input" placeholder="e.g. IPL26" />
+                <input required type="text" name="auction_code" value={formData.auction_code} onChange={handleChange} className="form-input" placeholder="e.g. IPL26" disabled={!!editingAuction} />
               </div>
               <div className="form-group">
                 <label className="form-label">Date</label>
@@ -102,6 +192,10 @@ const AuctionPage = () => {
               <div className="form-group">
                 <label className="form-label">Venue</label>
                 <input type="text" name="venue" value={formData.venue} onChange={handleChange} className="form-input" placeholder="e.g. Wankhede Stadium" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Per Player Fee (₹)</label>
+                <input type="number" name="per_player_fees" value={formData.per_player_fees} onChange={handleChange} className="form-input" placeholder="e.g. 500" min="0" />
               </div>
               <div className="form-group">
                 <label className="form-label">Status *</label>
@@ -113,15 +207,85 @@ const AuctionPage = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Auction Logo</label>
-                <input type="file" name="logo" accept="image/*" onChange={handleChange} className="form-input" />
+                <label className="form-label">Auction Logo {editingAuction?.auction_logo && '(Uploaded)'}</label>
+                <input type="file" name="logo" accept="image/*" onChange={handleChange} className="form-input" ref={fileInputRef} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Payment QR Code {editingAuction?.qr_code_url && '(Uploaded)'}</label>
+                <input type="file" name="qr_code" accept="image/*" onChange={handleChange} className="form-input" ref={qrInputRef} />
               </div>
             </div>
 
             <button type="submit" disabled={submitting} className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem', maxWidth: '300px' }}>
-              {submitting ? 'Creating...' : 'Create Auction'}
+              {submitting ? 'Saving...' : (editingAuction ? 'Update Auction' : 'Create Auction')}
             </button>
           </form>
+        </div>
+
+        {/* LIST SECTION */}
+        <div className="glass-panel" style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+          <h2 style={{ color: 'var(--text-main)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            All Auctions
+          </h2>
+          
+          {loading ? <Loader message="Fetching..." /> : (
+            <div style={{ overflowX: 'auto' }}>
+              {auctionsList.length === 0 ? (
+                <p className="text-muted text-center" style={{ padding: '2rem' }}>No auctions created yet.</p>
+              ) : (
+                <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Logo</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Name & Code</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Venue / Date</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Fee</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Status</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>QR</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auctionsList.map(a => (
+                      <tr key={a.id} style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)' }}>
+                        <td style={{ padding: '1rem' }}>
+                          <img src={a.auction_logo || 'https://via.placeholder.com/50'} alt="Logo" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: '4px', background: 'rgba(255,255,255,0.1)' }} />
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <div style={{ fontWeight: 'bold' }}>{a.auction_name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Code: {a.auction_code}</div>
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <div>{a.venue || '-'}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.auction_date || '-'}</div>
+                        </td>
+                        <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>
+                          {a.per_player_fees ? `₹${a.per_player_fees}` : '-'}
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{ 
+                            padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase',
+                            background: a.status === 'running' ? 'rgba(57, 255, 20, 0.2)' : a.status === 'registration_open' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.1)',
+                            color: a.status === 'running' ? 'var(--accent-green)' : a.status === 'registration_open' ? '#38bdf8' : 'var(--text-muted)'
+                          }}>
+                            {a.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          {a.qr_code_url ? <span style={{ color: 'var(--accent-green)', fontSize: '1.2rem' }}>✓</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                          <button onClick={() => handleEditClick(a)} className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

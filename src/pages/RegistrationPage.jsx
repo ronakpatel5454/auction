@@ -23,7 +23,7 @@ const RegistrationPage = () => {
       try {
         const { data, error } = await supabase
           .from('auctions')
-          .select('id, auction_name')
+          .select('id, auction_name, qr_code_url, per_player_fees')
           .in('status', ['registration_open', 'running'])
           .limit(1)
           .single();
@@ -54,6 +54,18 @@ const RegistrationPage = () => {
 
     try {
       if (!activeAuction) throw new Error("No active auction available for registration.");
+
+      // Check if mobile already exists
+      const { data: existingPlayer, error: checkError } = await supabase
+        .from('players')
+        .select('id')
+        .eq('mobile', formData.mobile)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existingPlayer) {
+        throw new Error("A player with this mobile number is already registered.");
+      }
 
       // Upload Images
       let photo_url = null;
@@ -226,6 +238,29 @@ const RegistrationPage = () => {
                 <input type="file" name="aadhar" accept="image/*,application/pdf" className="form-input" onChange={handleChange} />
               </div>
             </div>
+
+            {activeAuction && (activeAuction.qr_code_url || activeAuction.per_player_fees) && (
+              <div style={{ marginTop: '3rem' }}>
+                <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Registration Fee Payment</h3>
+                <div style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                  {activeAuction.per_player_fees && (
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)', marginBottom: '1.5rem' }}>
+                      Registration Fee: ₹{activeAuction.per_player_fees}
+                    </div>
+                  )}
+                  {activeAuction.qr_code_url && (
+                    <>
+                      <p style={{ marginBottom: '1.5rem', color: 'var(--text-main)', fontSize: '1.1rem' }}>Please scan the QR Code below to securely complete your registration fee payment.</p>
+                      <img 
+                        src={activeAuction.qr_code_url} 
+                        alt="Payment QR Code for Registration" 
+                        style={{ maxWidth: '280px', width: '100%', borderRadius: '12px', border: '3px solid var(--accent-gold)', boxShadow: '0 8px 30px rgba(255, 215, 0, 0.15)' }} 
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginTop: '3rem', textAlign: 'center' }}>
               <button
