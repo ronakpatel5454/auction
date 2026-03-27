@@ -22,6 +22,7 @@ const AuctionPage = React.lazy(() => import('./pages/AuctionPage'));
 const AuctionTeamsPage = React.lazy(() => import('./pages/AuctionTeamsPage'));
 const LiveAuctionPage = React.lazy(() => import('./pages/LiveAuctionPage'));
 const TeamDetailsPage = React.lazy(() => import('./pages/TeamDetailsPage'));
+const LiveAuctionProjectorPage = React.lazy(() => import('./pages/LiveAuctionProjectorPage'));
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/live-auction-projector" element={<LiveAuctionProjectorPage />} />
           <Route path="/players" element={<ProtectedRoute><PlayersPage /></ProtectedRoute>} />
           <Route path="/player/:id" element={<ProtectedRoute><PlayerProfilePage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />

@@ -135,7 +135,9 @@ const LiveAuctionPage = () => {
                 .from('auction_players')
                 .update({ 
                     current_bid_price: nextBid,
-                    current_bid_team_id: teamId
+                    current_bid_team_id: teamId,
+                    previous_bid_price: activePlayer.current_bid_price || 0,
+                    previous_bid_team_id: activePlayer.current_bid_team_id || null
                 })
                 .eq('id', activePlayer.id);
 
@@ -143,6 +145,61 @@ const LiveAuctionPage = () => {
             await fetchData();
         } catch (err) {
             alert("Failed to place bid");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const undoLastBid = async () => {
+        if (!activePlayer || actionLoading || !activePlayer.current_bid_team_id) return;
+        if (!window.confirm("Undo the last bid?")) return;
+
+        try {
+            setActionLoading(true);
+            const { error } = await supabase
+                .from('auction_players')
+                .update({ 
+                    current_bid_price: activePlayer.previous_bid_price || 0,
+                    current_bid_team_id: activePlayer.previous_bid_team_id || null,
+                    previous_bid_price: 0,
+                    previous_bid_team_id: null
+                })
+                .eq('id', activePlayer.id);
+
+            if (error) throw error;
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to undo bid.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const cancelActiveAuction = async () => {
+        if (!activePlayer || actionLoading) return;
+        if (!window.confirm(`Stop auction for ${activePlayer.players.first_name} and return them to pending list?`)) return;
+
+        try {
+            setActionLoading(true);
+            const { error } = await supabase
+                .from('auction_players')
+                .update({ 
+                    auction_status: 'pending',
+                    team_id: null,
+                    sold_price: 0,
+                    current_bid_price: 0,
+                    current_bid_team_id: null,
+                    previous_bid_price: 0,
+                    previous_bid_team_id: null
+                })
+                .eq('id', activePlayer.id);
+
+            if (error) throw error;
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to cancel auction.");
         } finally {
             setActionLoading(false);
         }
@@ -329,6 +386,14 @@ const LiveAuctionPage = () => {
 
                                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '3rem', justifyContent: 'center' }}>
                                             <button 
+                                                onClick={undoLastBid} 
+                                                disabled={actionLoading || !activePlayer.current_bid_team_id} 
+                                                className="btn btn-outline" 
+                                                style={{ padding: '1rem 2rem', color: '#f59e0b', borderColor: '#f59e0b', fontSize: '1.1rem' }}
+                                            >
+                                                ↩️ UNDO BID
+                                            </button>
+                                            <button 
                                                 onClick={finalizeSold} 
                                                 disabled={actionLoading || !activePlayer.current_bid_team_id} 
                                                 className="btn btn-primary" 
@@ -340,9 +405,17 @@ const LiveAuctionPage = () => {
                                                 onClick={markUnsold} 
                                                 disabled={actionLoading} 
                                                 className="btn" 
-                                                style={{ padding: '1rem 3rem', background: '#ef4444', color: '#fff', fontSize: '1.1rem' }}
+                                                style={{ padding: '1rem 2rem', background: '#ef4444', color: '#fff', fontSize: '1.1rem' }}
                                             >
                                                 ❌ UNSOLD
+                                            </button>
+                                            <button 
+                                                onClick={cancelActiveAuction} 
+                                                disabled={actionLoading} 
+                                                className="btn btn-outline" 
+                                                style={{ padding: '1rem 2rem', color: '#94a3b8', borderColor: '#94a3b8', fontSize: '1.1rem' }}
+                                            >
+                                                ⏹️ CANCEL
                                             </button>
                                         </div>
                                     </div>
