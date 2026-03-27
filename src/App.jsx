@@ -19,6 +19,9 @@ const PlayerProfilePage = React.lazy(() => import('./pages/PlayerProfilePage'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 const AdminPlayersPage = React.lazy(() => import('./pages/AdminPlayersPage'));
 const AuctionPage = React.lazy(() => import('./pages/AuctionPage'));
+const AuctionTeamsPage = React.lazy(() => import('./pages/AuctionTeamsPage'));
+const LiveAuctionPage = React.lazy(() => import('./pages/LiveAuctionPage'));
+const TeamDetailsPage = React.lazy(() => import('./pages/TeamDetailsPage'));
 
 function App() {
   return (
@@ -31,6 +34,9 @@ function App() {
           <Route path="/player/:id" element={<ProtectedRoute><PlayerProfilePage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           <Route path="/auction" element={<ProtectedRoute><AuctionPage /></ProtectedRoute>} />
+          <Route path="/auction-teams" element={<ProtectedRoute><AuctionTeamsPage /></ProtectedRoute>} />
+          <Route path="/live-auction" element={<ProtectedRoute><LiveAuctionPage /></ProtectedRoute>} />
+          <Route path="/team-details" element={<ProtectedRoute><TeamDetailsPage /></ProtectedRoute>} />
           <Route path="/admin-players" element={<ProtectedRoute><AdminPlayersPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>

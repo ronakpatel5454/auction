@@ -244,9 +244,14 @@ const RegistrationPage = () => {
                 <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Registration Fee Payment</h3>
                 <div style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                   {activeAuction.per_player_fees && (
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)', marginBottom: '1.5rem' }}>
-                      Registration Fee: ₹{activeAuction.per_player_fees}
-                    </div>
+                    <>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)', marginBottom: '1.5rem' }}>
+                        Registration Fee: ₹{activeAuction.per_player_fees}
+                      </div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)', marginBottom: '1.5rem' }}>
+                        Registration Fee for Icon Player : ₹{500}
+                      </div>
+                    </>
                   )}
                   {activeAuction.qr_code_url && (
                     <>

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 
 const PlayerProfilePage = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const fromPath = location.state?.from || '/players';
+
   const [player, setPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +18,7 @@ const PlayerProfilePage = () => {
       try {
         const { data, error } = await supabase
           .from('players')
-          .select('*')
+          .select('*, auction_players(is_icon)')
           .eq('id', id)
           .single();
 
@@ -34,7 +38,7 @@ const PlayerProfilePage = () => {
     <div className="flex-col min-h-screen">
       <PageHeader title="Player Not Found" showLogos={false} />
       <div className="container" style={{ textAlign: 'center', padding: '4rem' }}>
-        <Link to="/players" className="btn btn-outline">Back to Players</Link>
+        <button onClick={() => navigate(fromPath)} className="btn btn-outline">Go Back</button>
       </div>
     </div>
   );
@@ -50,9 +54,9 @@ const PlayerProfilePage = () => {
       <div className="spotlight"></div>
 
       <div style={{ position: 'absolute', top: '2rem', left: '2rem', zIndex: 10 }}>
-        <Link to="/players" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>←</span> Back to Roster
-        </Link>
+        <button onClick={() => navigate(fromPath)} className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>←</span> Back
+        </button>
       </div>
 
       <main className="container" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem', zIndex: 1, position: 'relative' }}>
@@ -60,31 +64,57 @@ const PlayerProfilePage = () => {
         <div className="glass-panel" style={{
           display: 'flex',
           flexDirection: 'row',
-          flexWrap: 'wrap',
+          // flexWrap: 'wrap',
+          flexWrap: 'nowrap',
           width: '100%',
           maxWidth: '1200px',
           overflow: 'hidden',
           padding: 0,
+          minHeight: '500px',
           animation: 'fadeInUp 0.6s ease-out'
         }}>
 
           {/* Left Side: Giant Image */}
-          <div style={{ flex: '1 1 400px', position: 'relative', minHeight: '600px', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <img
-              src={player.photo_url || 'https://via.placeholder.com/600x800?text=No+Photo'}
-              alt={player.first_name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
-            />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40%', background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent)' }}></div>
-            <div style={{ position: 'absolute', bottom: '2rem', left: '2rem' }}>
+          <div style={{
+            flex: '0 0 500px',
+            width: '500px',
+            position: 'relative',
+            minHeight: '500px',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            overflow: 'hidden'
+          }}>
+            {player.photo_url ? (
+              <img
+                src={player.photo_url}
+                alt={player.first_name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+              />
+            ) : (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, rgba(255,215,0,0.1), rgba(57,255,20,0.05))',
+                color: 'rgba(255,215,0,0.3)', fontSize: '9rem', fontWeight: 900, letterSpacing: '8px'
+              }}>
+                {(player.first_name?.charAt(0) || '') + (player.last_name?.charAt(0) || '')}
+              </div>
+            )}
+
+            <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40%', background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent)', zIndex: 1 }}></div>
+            <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', zIndex: 2, display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
               <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1rem', fontSize: '1.2rem', fontWeight: 800, borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '2px' }}>
                 {player.player_role || 'PLAYER'}
               </span>
+              {player.auction_players?.some(ap => ap.is_icon) && (
+                <span style={{ backgroundColor: '#f59e0b', color: '#000', padding: '0.5rem 1rem', fontSize: '1.2rem', fontWeight: 800, borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                  ICON
+                </span>
+              )}
             </div>
           </div>
 
           {/* Right Side: Details */}
-          <div style={{ flex: '1.5 1 500px', padding: '5rem 4rem', display: 'flex', flexDirection: 'column', justifyItems: 'center' }}>
+          <div style={{ flex: '1 1 0', minWidth: '0', padding: '5rem 4rem', display: 'flex', flexDirection: 'column', justifyItems: 'center' }}>
 
             <h1 style={{ fontSize: '4.5rem', color: '#fff', textTransform: 'uppercase', lineHeight: 1.1, margin: '0 0 0.5rem 0', textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
               {player.first_name} <br />

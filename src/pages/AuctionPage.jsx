@@ -25,7 +25,11 @@ const AuctionPage = () => {
     status: 'draft',
     logo: null,
     qr_code: null,
-    per_player_fees: ''
+    per_player_fees: '',
+    number_of_teams: '',
+    number_of_icon: '',
+    base_price: '',
+    max_budget: ''
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -69,6 +73,10 @@ const AuctionPage = () => {
       venue: auction.venue || '',
       status: auction.status || 'draft',
       per_player_fees: auction.per_player_fees || '',
+      number_of_teams: auction.number_of_teams || '',
+      number_of_icon: auction.number_of_icon || '',
+      base_price: auction.base_price || '',
+      max_budget: auction.max_budget || '',
       logo: null, // Don't reload file objects
       qr_code: null
     });
@@ -120,6 +128,10 @@ const AuctionPage = () => {
         venue: formData.venue || null,
         status: formData.status,
         per_player_fees: formData.per_player_fees ? parseFloat(formData.per_player_fees) : null,
+        number_of_teams: formData.number_of_teams ? parseInt(formData.number_of_teams, 10) : null,
+        number_of_icon: formData.number_of_icon ? parseInt(formData.number_of_icon, 10) : null,
+        base_price: formData.base_price ? parseFloat(formData.base_price) : null,
+        max_budget: formData.max_budget ? parseFloat(formData.max_budget) : null,
         auction_logo,
         qr_code_url
       };
@@ -205,6 +217,22 @@ const AuctionPage = () => {
                 <input type="number" name="per_player_fees" value={formData.per_player_fees} onChange={handleChange} className="form-input" placeholder="e.g. 500" min="0" />
               </div>
               <div className="form-group">
+                <label className="form-label">Number of Teams</label>
+                <input type="number" name="number_of_teams" value={formData.number_of_teams} onChange={handleChange} className="form-input" placeholder="e.g. 8" min="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Icons Per Team</label>
+                <input type="number" name="number_of_icon" value={formData.number_of_icon} onChange={handleChange} className="form-input" placeholder="e.g. 2" min="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Base Price (₹)</label>
+                <input type="number" name="base_price" value={formData.base_price} onChange={handleChange} className="form-input" placeholder="e.g. 1000" min="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Max Budget Per Team (₹)</label>
+                <input type="number" name="max_budget" value={formData.max_budget} onChange={handleChange} className="form-input" placeholder="e.g. 100000" min="0" />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Status *</label>
                 <select required name="status" value={formData.status} onChange={handleChange} className="form-select">
                   <option value="draft">Draft (Hidden)</option>
@@ -246,6 +274,8 @@ const AuctionPage = () => {
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Logo</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Name & Code</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Venue / Date</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Teams Details</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Budget Info</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Fee</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Status</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>QR</th>
@@ -265,6 +295,14 @@ const AuctionPage = () => {
                         <td style={{ padding: '1rem' }}>
                           <div>{a.venue || '-'}</div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.auction_date || '-'}</div>
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <div>Teams: <span style={{ fontWeight: 'bold' }}>{a.number_of_teams || 0}</span></div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Icons/Team: {a.number_of_icon || 0}</div>
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <div>Budget: <span style={{ fontWeight: 'bold' }}>{a.max_budget ? `₹${a.max_budget}` : '-'}</span></div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Base Price: {a.base_price ? `₹${a.base_price}` : '-'}</div>
                         </td>
                         <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>
                           {a.per_player_fees ? `₹${a.per_player_fees}` : '-'}
