@@ -15,13 +15,17 @@ const LiveAuctionPage = () => {
     const [players, setPlayers] = useState([]);
     const [activePlayer, setActivePlayer] = useState(null);
 
+    // Search and Filter States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('ALL');
+
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
             return;
         }
         fetchData();
-        
+
         // Real-time subscription for bidding updates
         const subscription = supabase
             .channel('auction_updates')
@@ -59,9 +63,9 @@ const LiveAuctionPage = () => {
                     .select('*, players(*)')
                     .eq('auction_id', auctionData.id)
                     .eq('approval_status', 'approved');
-                
+
                 setPlayers(apData || []);
-                
+
                 // Find currently active player
                 const currentActive = apData?.find(p => p.auction_status === 'active');
                 setActivePlayer(currentActive || null);
@@ -76,7 +80,7 @@ const LiveAuctionPage = () => {
     const startAuctionForPlayer = async (auctionPlayerId) => {
         try {
             setActionLoading(true);
-            
+
             // Check if any other player is active
             if (activePlayer) {
                 alert("Another player is already active. Please finish that auction first.");
@@ -85,7 +89,7 @@ const LiveAuctionPage = () => {
 
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     auction_status: 'active',
                     current_bid_price: activeAuction.base_price,
                     current_bid_team_id: null
@@ -103,14 +107,14 @@ const LiveAuctionPage = () => {
 
     const placeBid = async (teamId) => {
         if (!activePlayer || actionLoading) return;
-        
+
         try {
             setActionLoading(true);
-            
+
             // Calculate next bid
             const currentBid = activePlayer.current_bid_price || 0;
             let nextBid = 0;
-            
+
             if (!activePlayer.current_bid_team_id) {
                 nextBid = activeAuction.base_price;
             } else {
@@ -125,7 +129,7 @@ const LiveAuctionPage = () => {
             const targetTeam = teams.find(t => t.id === teamId);
             const teamPlayers = players.filter(p => p.team_id === teamId);
             const spent = teamPlayers.reduce((acc, p) => acc + (p.sold_price || 0), 0);
-            
+
             if (spent + nextBid > activeAuction.max_budget) {
                 alert(`Insufficient budget! ${targetTeam.team_name} has only ${activeAuction.max_budget - spent} remaining.`);
                 return;
@@ -133,7 +137,7 @@ const LiveAuctionPage = () => {
 
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     current_bid_price: nextBid,
                     current_bid_team_id: teamId,
                     previous_bid_price: activePlayer.current_bid_price || 0,
@@ -158,7 +162,7 @@ const LiveAuctionPage = () => {
             setActionLoading(true);
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     current_bid_price: activePlayer.previous_bid_price || 0,
                     current_bid_team_id: activePlayer.previous_bid_team_id || null,
                     previous_bid_price: 0,
@@ -184,7 +188,7 @@ const LiveAuctionPage = () => {
             setActionLoading(true);
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     auction_status: 'pending',
                     team_id: null,
                     sold_price: 0,
@@ -213,7 +217,7 @@ const LiveAuctionPage = () => {
             setActionLoading(true);
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     auction_status: 'sold',
                     team_id: activePlayer.current_bid_team_id,
                     sold_price: activePlayer.current_bid_price
@@ -237,7 +241,7 @@ const LiveAuctionPage = () => {
             setActionLoading(true);
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     auction_status: 'unsold',
                     team_id: null,
                     sold_price: 0,
@@ -262,11 +266,11 @@ const LiveAuctionPage = () => {
             setActionLoading(true);
             const { error } = await supabase
                 .from('auction_players')
-                .update({ 
+                .update({
                     auction_status: 'pending',
                     team_id: null,
                     sold_price: 0,
-                    current_bid_price: 0, 
+                    current_bid_price: 0,
                     current_bid_team_id: null
                 })
                 .eq('id', player.id);
@@ -281,11 +285,75 @@ const LiveAuctionPage = () => {
         }
     };
 
+    const restartPlayer = async (player) => {
+        if (!window.confirm(`Restart auction for ${player.players.first_name}? This will move them back to the pending list.`)) return;
+
+        try {
+            setActionLoading(true);
+            const { error } = await supabase
+                .from('auction_players')
+                .update({
+                    auction_status: 'pending',
+                    team_id: null,
+                    sold_price: 0,
+                    current_bid_price: 0,
+                    current_bid_team_id: null
+                })
+                .eq('id', player.id);
+
+            if (error) throw error;
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to restart player.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const restartAllUnsold = async () => {
+        const unsoldOnes = players.filter(p => p.auction_status === 'unsold');
+        if (unsoldOnes.length === 0) return;
+        if (!window.confirm(`Are you sure you want to RESTART ALL ${unsoldOnes.length} unsold players and move them back to the pending list?`)) return;
+
+        try {
+            setActionLoading(true);
+            const { error } = await supabase
+                .from('auction_players')
+                .update({
+                    auction_status: 'pending',
+                    team_id: null,
+                    sold_price: 0,
+                    current_bid_price: 0,
+                    current_bid_team_id: null
+                })
+                .in('id', unsoldOnes.map(p => p.id));
+
+            if (error) throw error;
+            await fetchData();
+            alert("All unsold players moved back to pending.");
+        } catch (err) {
+            console.error(err);
+            alert("Failed to restart all unsold players.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     if (!isAuthenticated) return <Navigate to="/admin" replace />;
     if (loading) return <Loader message="OPENING AUCTION STADIUM..." />;
 
-    const pendingPlayers = players.filter(p => !['sold', 'unsold', 'active'].includes(p.auction_status) && !p.is_icon);
+    const pendingPlayers = players.filter(p => {
+        const matchesStatus = !['sold', 'unsold', 'active'].includes(p.auction_status) && !p.is_icon;
+        const matchesSearch = (p.players.first_name + ' ' + p.players.last_name).toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesRole = roleFilter === 'ALL' || p.players.player_role === roleFilter;
+        return matchesStatus && matchesSearch && matchesRole;
+    });
     const soldPlayers = players.filter(p => p.auction_status === 'sold');
+    const unsoldPlayers = players.filter(p => p.auction_status === 'unsold');
+
+    // Get unique roles for filter
+    const roles = ['ALL', ...new Set(players.map(p => p.players.player_role).filter(Boolean))];
     const winningTeam = activePlayer?.current_bid_team_id ? teams.find(t => t.id === activePlayer.current_bid_team_id) : null;
 
     return (
@@ -294,22 +362,29 @@ const LiveAuctionPage = () => {
             <PageHeader title="Live Auction Control" showLogos={false} />
 
             <main className="container" style={{ padding: '2rem 1rem', zIndex: 1, position: 'relative' }}>
-                
+
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('bidding')}
                         className={`btn ${activeTab === 'bidding' ? 'btn-primary' : 'btn-outline'}`}
                         style={{ padding: '0.6rem 1.5rem', background: activeTab === 'bidding' ? 'var(--accent-gold)' : 'transparent' }}
                     >
                         LIVE BIDDING
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('sold')}
                         className={`btn ${activeTab === 'sold' ? 'btn-primary' : 'btn-outline'}`}
                         style={{ padding: '0.6rem 1.5rem', background: activeTab === 'sold' ? 'var(--accent-gold)' : 'transparent' }}
                     >
                         SOLD PLAYERS ({soldPlayers.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('unsold')}
+                        className={`btn ${activeTab === 'unsold' ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ padding: '0.6rem 1.5rem', background: activeTab === 'unsold' ? 'var(--accent-gold)' : 'transparent' }}
+                    >
+                        UNSOLD ({unsoldPlayers.length})
                     </button>
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
                         <Link to="/team-details" className="btn btn-outline" style={{ padding: '0.6rem 1rem' }}>Team Roster & Purse</Link>
@@ -319,7 +394,7 @@ const LiveAuctionPage = () => {
 
                 {activeTab === 'bidding' ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
-                        
+
                         {/* Center Stage: Active Bidding */}
                         <div className="glass-panel" style={{ padding: '2.5rem', minHeight: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                             {!activePlayer ? (
@@ -331,13 +406,13 @@ const LiveAuctionPage = () => {
                             ) : (
                                 <div style={{ width: '100%' }}>
                                     <div className="badge badge-success" style={{ marginBottom: '2rem', fontSize: '1rem', padding: '0.5rem 1.5rem', borderRadius: '50px', background: 'var(--accent-gold)', color: '#000', fontWeight: 'bold' }}>LIVE BIDDING</div>
-                                    
+
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3rem', marginBottom: '3rem' }}>
                                         <div style={{ position: 'relative' }}>
-                                            <img 
-                                                src={activePlayer.players.photo_url || 'https://via.placeholder.com/200'} 
-                                                alt="Player" 
-                                                style={{ width: 220, height: 220, objectFit: 'cover', borderRadius: '15px', border: '4px solid var(--accent-gold)', boxShadow: '0 0 30px rgba(255,215,0,0.3)' }} 
+                                            <img
+                                                src={activePlayer.players.photo_url || 'https://via.placeholder.com/200'}
+                                                alt="Player"
+                                                style={{ width: 'auto', height: 220, objectFit: 'cover', borderRadius: '15px', border: '4px solid var(--accent-gold)', boxShadow: '0 0 30px rgba(255,215,0,0.3)' }}
                                             />
                                             <div style={{ position: 'absolute', bottom: -15, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-gold)', color: '#000', padding: '0.3rem 1rem', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.8rem' }}>
                                                 {activePlayer.players.player_role}
@@ -347,7 +422,7 @@ const LiveAuctionPage = () => {
                                         <div style={{ textAlign: 'left' }}>
                                             <h1 style={{ fontSize: '3rem', margin: 0, color: 'var(--text-main)' }}>{activePlayer.players.first_name} {activePlayer.players.last_name}</h1>
                                             <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>State: {activePlayer.players.state} | Base Price: ₹{activeAuction.base_price}</p>
-                                            
+
                                             <div style={{ marginTop: '2rem', background: 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--accent-gold)' }}>
                                                 <div style={{ fontSize: '0.9rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '2px' }}>Current Highest Bid</div>
                                                 <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>₹ {activePlayer.current_bid_price?.toLocaleString() || activeAuction.base_price.toLocaleString()}</div>
@@ -363,56 +438,58 @@ const LiveAuctionPage = () => {
                                         <h4 style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>PLACE BID FOR:</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                                             {teams.map(team => (
-                                                <button 
+                                                <button
                                                     key={team.id}
                                                     onClick={() => placeBid(team.id)}
                                                     disabled={actionLoading || team.id === activePlayer.current_bid_team_id}
                                                     className="btn btn-outline"
-                                                    style={{ 
-                                                        display: 'flex', 
-                                                        flexDirection: 'column', 
-                                                        alignItems: 'center', 
-                                                        gap: '0.5rem', 
+                                                    style={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
                                                         padding: '1rem',
                                                         borderColor: team.id === activePlayer.current_bid_team_id ? 'var(--accent-gold)' : 'var(--border-color)',
                                                         background: team.id === activePlayer.current_bid_team_id ? 'rgba(255,215,0,0.1)' : 'transparent'
                                                     }}
                                                 >
-                                                    <img src={team.logo_url || 'https://via.placeholder.com/40'} alt="Logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                                                    {team.logo_url && (
+                                                        <img src={team.logo_url} alt="Logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                                                    )}
                                                     <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{team.team_name}</span>
                                                 </button>
                                             ))}
                                         </div>
 
                                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '3rem', justifyContent: 'center' }}>
-                                            <button 
-                                                onClick={undoLastBid} 
-                                                disabled={actionLoading || !activePlayer.current_bid_team_id} 
-                                                className="btn btn-outline" 
+                                            <button
+                                                onClick={undoLastBid}
+                                                disabled={actionLoading || !activePlayer.current_bid_team_id}
+                                                className="btn btn-outline"
                                                 style={{ padding: '1rem 2rem', color: '#f59e0b', borderColor: '#f59e0b', fontSize: '1.1rem' }}
                                             >
                                                 ↩️ UNDO BID
                                             </button>
-                                            <button 
-                                                onClick={finalizeSold} 
-                                                disabled={actionLoading || !activePlayer.current_bid_team_id} 
-                                                className="btn btn-primary" 
+                                            <button
+                                                onClick={finalizeSold}
+                                                disabled={actionLoading || !activePlayer.current_bid_team_id}
+                                                className="btn btn-primary"
                                                 style={{ padding: '1rem 3rem', background: '#10b981', borderColor: '#10b981', fontSize: '1.1rem' }}
                                             >
                                                 🔨 SOLD
                                             </button>
-                                            <button 
-                                                onClick={markUnsold} 
-                                                disabled={actionLoading} 
-                                                className="btn" 
+                                            <button
+                                                onClick={markUnsold}
+                                                disabled={actionLoading}
+                                                className="btn"
                                                 style={{ padding: '1rem 2rem', background: '#ef4444', color: '#fff', fontSize: '1.1rem' }}
                                             >
                                                 ❌ UNSOLD
                                             </button>
-                                            <button 
-                                                onClick={cancelActiveAuction} 
-                                                disabled={actionLoading} 
-                                                className="btn btn-outline" 
+                                            <button
+                                                onClick={cancelActiveAuction}
+                                                disabled={actionLoading}
+                                                className="btn btn-outline"
                                                 style={{ padding: '1rem 2rem', color: '#94a3b8', borderColor: '#94a3b8', fontSize: '1.1rem' }}
                                             >
                                                 ⏹️ CANCEL
@@ -425,10 +502,32 @@ const LiveAuctionPage = () => {
 
                         {/* Sidebar: Pending Players */}
                         <div className="glass-panel" style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
-                            <h3 style={{ color: 'var(--accent-gold)', fontSize: '1.1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>PENDING PLAYERS ({pendingPlayers.length})</h3>
+                            <h3 style={{ color: 'var(--accent-gold)', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>PENDING PLAYERS ({pendingPlayers.length})</h3>
+                            
+                            {/* Search and Filters */}
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search player name..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', color: '#fff', fontSize: '0.9rem' }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ROLE:</span>
+                                    <select 
+                                        value={roleFilter}
+                                        onChange={(e) => setRoleFilter(e.target.value)}
+                                        style={{ flex: 1, padding: '0.4rem', background: '#1a1a1a', border: '1px solid var(--border-color)', borderRadius: '4px', color: '#fff', fontSize: '0.8rem' }}
+                                    >
+                                        {roles.map(role => <option key={role} value={role}>{role}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 {pendingPlayers.length === 0 ? (
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No pending players available.</p>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No players found.</p>
                                 ) : (
                                     pendingPlayers.map(p => (
                                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px' }}>
@@ -437,10 +536,10 @@ const LiveAuctionPage = () => {
                                                 <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{p.players.first_name} {p.players.last_name}</div>
                                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.players.player_role}</div>
                                             </div>
-                                            <button 
-                                                onClick={() => startAuctionForPlayer(p.id)} 
-                                                disabled={actionLoading || activePlayer} 
-                                                className="btn btn-outline" 
+                                            <button
+                                                onClick={() => startAuctionForPlayer(p.id)}
+                                                disabled={actionLoading || activePlayer}
+                                                className="btn btn-outline"
                                                 style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }}
                                             >
                                                 Start
@@ -451,7 +550,7 @@ const LiveAuctionPage = () => {
                             </div>
                         </div>
                     </div>
-                ) : (
+                ) : activeTab === 'sold' ? (
                     /* Tab 2: Sold Players List */
                     <div className="glass-panel" style={{ padding: '2rem' }}>
                         <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>SOLD PLAYERS REGISTRY</h3>
@@ -481,16 +580,18 @@ const LiveAuctionPage = () => {
                                                     <td style={{ padding: '1rem' }}>{p.players.player_role}</td>
                                                     <td style={{ padding: '1rem' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            <img src={team?.logo_url || 'https://via.placeholder.com/25'} alt="L" style={{ width: 25, height: 25, objectFit: 'contain' }} />
+                                                            {team?.logo_url && (
+                                                                <img src={team.logo_url} alt="L" style={{ width: 25, height: 25, objectFit: 'contain' }} />
+                                                            )}
                                                             {team?.team_name || 'Unknown Team'}
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent-gold)' }}>₹ {p.sold_price?.toLocaleString()}</td>
                                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                                        <button 
-                                                            onClick={() => revertPlayer(p)} 
+                                                        <button
+                                                            onClick={() => revertPlayer(p)}
                                                             disabled={actionLoading}
-                                                            className="btn btn-outline" 
+                                                            className="btn btn-outline"
                                                             style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', color: '#ff4444', borderColor: '#ff4444' }}
                                                         >
                                                             Revert
@@ -499,6 +600,61 @@ const LiveAuctionPage = () => {
                                                 </tr>
                                             );
                                         })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* Tab 3: Unsold Players List */
+                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ color: 'var(--accent-gold)', margin: 0 }}>UNSOLD PLAYERS LIST</h3>
+                            {unsoldPlayers.length > 0 && (
+                                <button 
+                                    onClick={restartAllUnsold}
+                                    disabled={actionLoading}
+                                    className="btn"
+                                    style={{ background: '#3b82f6', color: '#fff', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                                >
+                                    🔄 RESTART ALL ({unsoldPlayers.length})
+                                </button>
+                            )}
+                        </div>
+                        {unsoldPlayers.length === 0 ? (
+                            <p className="text-muted text-center" style={{ padding: '3rem' }}>No unsold players available.</p>
+                        ) : (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--accent-gold)' }}>
+                                            <th style={{ padding: '1rem' }}>Player</th>
+                                            <th style={{ padding: '1rem' }}>Role</th>
+                                            <th style={{ padding: '1rem' }}>State</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {unsoldPlayers.map(p => (
+                                            <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <div>{p.players.first_name} {p.players.last_name}</div>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{p.players.player_role}</td>
+                                                <td style={{ padding: '1rem' }}>{p.players.state}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    <button
+                                                        onClick={() => restartPlayer(p)}
+                                                        disabled={actionLoading}
+                                                        className="btn btn-outline"
+                                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', color: '#3b82f6', borderColor: '#3b82f6' }}
+                                                    >
+                                                        Revert
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
