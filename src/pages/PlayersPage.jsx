@@ -198,7 +198,7 @@ const PlayersPage = () => {
     // Sort by player_number before generating PDF
     const sorted = [...dataToExport].sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
 
-    const tableColumn = ["No.", "Name", "Role", "Batting", "Bowling", "Area"];
+    const tableColumn = ["Player No.", "Name", "Role", "Batting", "Bowling", "Area"];
 
     if (pdfGroup === 'none') {
       const tableRows = sorted.map((player) => [
@@ -284,9 +284,9 @@ const PlayersPage = () => {
         .select('player_id, player_number')
         .eq('auction_id', activeAuction.id)
         .in('approval_status', ['approved', 'pending']);
-        
+
       if (apError) throw apError;
-      
+
       let allPlayersToExport = [];
       if (apData && apData.length > 0) {
         const playerIds = apData.map(ap => ap.player_id);
@@ -294,7 +294,7 @@ const PlayersPage = () => {
           .from('players')
           .select('*')
           .in('id', playerIds);
-          
+
         if (pError) throw pError;
 
         const numberMap = {};
@@ -304,7 +304,7 @@ const PlayersPage = () => {
           player_number: numberMap[p.id] ?? null
         }));
       }
-      
+
       await generatePDF(allPlayersToExport, `All_Registered_Players_${activeAuction?.auction_name?.replace(/ /g, '_') || 'List'}.pdf`);
     } catch (error) {
       console.error("Error fetching all players for PDF:", error);

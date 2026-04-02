@@ -21,7 +21,7 @@ const AdminPlayersPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [formError, setFormError] = useState('');
-  
+
   const initialFormState = {
     first_name: '', last_name: '', mobile: '', email: '',
     dob: '', area: '', gender: '',
@@ -51,7 +51,7 @@ const AdminPlayersPage = () => {
         .in('status', ['registration_open', 'running'])
         .limit(1)
         .single();
-        
+
       if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
       setActiveAuction(auctionData);
 
@@ -69,9 +69,9 @@ const AdminPlayersPage = () => {
             .from('players')
             .select('*')
             .in('id', playerIds);
-            
+
           if (pError) throw pError;
-          
+
           const merged = apData.map(ap => {
             const playerDetails = pData.find(p => p.id === ap.player_id) || {};
             return {
@@ -82,9 +82,9 @@ const AdminPlayersPage = () => {
               player_number: ap.player_number ?? null
             };
           });
-          
+
           // Reverse sort so newest is first
-          setPlayersList(merged.sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
+          setPlayersList(merged.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
         } else {
           setPlayersList([]);
         }
@@ -103,7 +103,7 @@ const AdminPlayersPage = () => {
         .from('auction_players')
         .update({ approval_status: newStatus })
         .eq('id', auctionPlayerId);
-        
+
       if (error) throw error;
       setPlayersList(prev => prev.map(p => p.auction_player_id === auctionPlayerId ? { ...p, approval_status: newStatus } : p));
     } catch (err) {
@@ -118,7 +118,7 @@ const AdminPlayersPage = () => {
     try {
       setActionLoading(true);
       const newIconStatus = !currentStatus;
-      
+
       const updatePayload = { is_icon: newIconStatus };
       if (!newIconStatus) {
         updatePayload.team_id = null;
@@ -128,10 +128,10 @@ const AdminPlayersPage = () => {
         .from('auction_players')
         .update(updatePayload)
         .eq('id', auctionPlayerId);
-        
+
       if (error) throw error;
       setPlayersList(prev => prev.map(p => p.auction_player_id === auctionPlayerId ? { ...p, is_icon: newIconStatus } : p));
-      
+
       // If we removed icon status, we might need to refresh to reflect team changes in UI
       if (!newIconStatus) await fetchData();
     } catch (err) {
@@ -144,7 +144,7 @@ const AdminPlayersPage = () => {
 
   const deletePlayer = async (playerId, auctionPlayerId) => {
     if (!window.confirm("Are you sure you want to permanently delete this player?")) return;
-    
+
     try {
       setActionLoading(true);
       const playerToDelete = playersList.find(p => p.id === playerId);
@@ -155,7 +155,7 @@ const AdminPlayersPage = () => {
 
       const { error: apError } = await supabase.from('auction_players').delete().eq('id', auctionPlayerId);
       if (apError) throw apError;
-      
+
       const { error: pError } = await supabase.from('players').delete().eq('id', playerId);
       if (pError) throw pError;
 
@@ -223,7 +223,7 @@ const AdminPlayersPage = () => {
       // Check Mobile uniqueness
       let mobileQuery = supabase.from('players').select('id').eq('mobile', formData.mobile).limit(1);
       const { data: existingPlayer, error: checkError } = await mobileQuery;
-      
+
       if (checkError) throw checkError;
       if (existingPlayer && existingPlayer.length > 0) {
         // If editing, make sure the found duplicate isn't the current player
@@ -256,7 +256,7 @@ const AdminPlayersPage = () => {
         // UPDATE player record
         const { error: updateError } = await supabase.from('players').update(playerPayload).eq('id', editingPlayer.id);
         if (updateError) throw updateError;
-        
+
         // UPDATE auction_players specifically for is_icon
         const apUpdatePayload = { is_icon: formData.is_icon || false };
         if (!formData.is_icon) {
@@ -267,7 +267,7 @@ const AdminPlayersPage = () => {
           .update(apUpdatePayload)
           .eq('id', editingPlayer.auction_player_id);
         if (apUpdateError) throw apUpdateError;
-        
+
         alert(`Player ${formData.first_name} updated successfully!`);
       } else {
         // INSERT new player
@@ -311,12 +311,65 @@ const AdminPlayersPage = () => {
     window.location.reload();
   };
 
+  const backfillPlayerNumbers = async () => {
+    if (!activeAuction) return alert('No active auction found.');
+    if (!window.confirm('This will assign player numbers to all players that currently have none (ordered by registration date). Continue?')) return;
+
+    setActionLoading(true);
+    try {
+      // 1. Get current max player_number for this auction
+      const { data: maxData } = await supabase
+        .from('auction_players')
+        .select('player_number')
+        .eq('auction_id', activeAuction.id)
+        .not('player_number', 'is', null)
+        .order('player_number', { ascending: false })
+        .limit(1);
+
+      let nextNumber = (maxData && maxData.length > 0 && maxData[0].player_number != null)
+        ? maxData[0].player_number + 1
+        : 1;
+
+      // 2. Get all auction_players with null player_number, ordered by created_at (old first)
+      const { data: nullPlayers, error: fetchErr } = await supabase
+        .from('auction_players')
+        .select('id, created_at')
+        .eq('auction_id', activeAuction.id)
+        .is('player_number', null)
+        .order('created_at', { ascending: true });
+
+      if (fetchErr) throw fetchErr;
+      if (!nullPlayers || nullPlayers.length === 0) {
+        alert('All players already have a player number assigned!');
+        return;
+      }
+
+      // 3. Update each one sequentially
+      for (const ap of nullPlayers) {
+        const { error: updateErr } = await supabase
+          .from('auction_players')
+          .update({ player_number: nextNumber })
+          .eq('id', ap.id);
+        if (updateErr) throw updateErr;
+        nextNumber++;
+      }
+
+      alert(`✅ Successfully assigned numbers to ${nullPlayers.length} player(s)!`);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to backfill player numbers: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!isAuthenticated) return <Navigate to="/admin" replace />;
   if (loading) return <Loader message="LOADING ADMIN PLAYERS..." />;
 
   const filteredList = playersList.filter(p => {
     const matchesTab = p.approval_status === activeTab;
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.mobile && p.mobile.includes(searchTerm));
     return matchesTab && matchesSearch;
@@ -334,7 +387,7 @@ const AdminPlayersPage = () => {
     <div className="flex-col min-h-screen">
       <div className="spotlight"></div>
       <PageHeader title="Player Management" showLogos={false} />
-      
+
       <main className="container" style={{ padding: '2rem 1rem', zIndex: 1, position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
@@ -342,6 +395,17 @@ const AdminPlayersPage = () => {
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             {!showForm && <button onClick={handleAddNewPlayer} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'var(--accent-gold)' }}>+ Add Player</button>}
+            {!showForm && (
+              <button
+                onClick={backfillPlayerNumbers}
+                disabled={actionLoading}
+                className="btn btn-outline"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                title="Assign player numbers to all players that don't have one yet"
+              >
+                🔢 Fix Numbering
+              </button>
+            )}
             <Link to="/players" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>View Roster</Link>
             <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Admin</Link>
             <button onClick={handleLogout} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', color: '#ff4444', borderColor: '#ff4444' }}>Logout</button>
@@ -350,7 +414,7 @@ const AdminPlayersPage = () => {
 
         {showForm ? (
           <div className="glass-panel" style={{ padding: '2.5rem', maxWidth: '800px', margin: '0 auto 3rem' }}>
-             <h2 style={{ color: 'var(--accent-gold)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ color: 'var(--accent-gold)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               {editingPlayer ? `Edit Player: ${editingPlayer.first_name}` : 'Add New Player'}
               <button type="button" onClick={cancelForm} className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
                 Cancel
@@ -457,46 +521,46 @@ const AdminPlayersPage = () => {
           <div className="glass-panel" style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button 
-                  onClick={() => { setActiveTab('pending'); setCurrentPage(1); }} 
+                <button
+                  onClick={() => { setActiveTab('pending'); setCurrentPage(1); }}
                   className={`btn ${activeTab === 'pending' ? 'btn-primary' : 'btn-outline'}`}
                   style={{ padding: '0.4rem 1.2rem', fontWeight: 600, fontSize: '0.9rem' }}
                 >
                   Pending ({pendingCount})
                 </button>
-                <button 
-                  onClick={() => { setActiveTab('approved'); setCurrentPage(1); }} 
+                <button
+                  onClick={() => { setActiveTab('approved'); setCurrentPage(1); }}
                   className={`btn ${activeTab === 'approved' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ 
+                  style={{
                     padding: '0.4rem 1.2rem', fontWeight: 600, fontSize: '0.9rem',
-                    color: activeTab === 'approved' ? '#000' : 'var(--accent-green)', 
+                    color: activeTab === 'approved' ? '#000' : 'var(--accent-green)',
                     borderColor: 'var(--accent-green)',
                     backgroundColor: activeTab === 'approved' ? 'var(--accent-green)' : 'transparent'
                   }}
                 >
                   Approved ({approvedCount})
                 </button>
-                <button 
-                  onClick={() => { setActiveTab('rejected'); setCurrentPage(1); }} 
+                <button
+                  onClick={() => { setActiveTab('rejected'); setCurrentPage(1); }}
                   className={`btn ${activeTab === 'rejected' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ 
+                  style={{
                     padding: '0.4rem 1.2rem', fontWeight: 600, fontSize: '0.9rem',
-                    color: activeTab === 'rejected' ? '#000' : '#f59e0b', 
-                    borderColor: '#f59e0b', 
-                    backgroundColor: activeTab === 'rejected' ? '#f59e0b' : 'transparent' 
+                    color: activeTab === 'rejected' ? '#000' : '#f59e0b',
+                    borderColor: '#f59e0b',
+                    backgroundColor: activeTab === 'rejected' ? '#f59e0b' : 'transparent'
                   }}
                 >
                   Rejected ({rejectedCount})
                 </button>
               </div>
               <div style={{ flex: '1', minWidth: '250px', maxWidth: '400px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Search by name or mobile..." 
-                  value={searchTerm} 
-                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} 
-                  className="form-input" 
-                  style={{ width: '100%', border: '1px solid var(--glass-border)' }} 
+                <input
+                  type="text"
+                  placeholder="Search by name or mobile..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  className="form-input"
+                  style={{ width: '100%', border: '1px solid var(--glass-border)' }}
                 />
               </div>
             </div>
@@ -506,7 +570,7 @@ const AdminPlayersPage = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', width: '50px' }}>No.</th>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', width: '50px' }}>Player No.</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Photo</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Name</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Role</th>
@@ -516,9 +580,9 @@ const AdminPlayersPage = () => {
                   </thead>
                   <tbody>
                     {paginatedList.map(p => (
-                      <tr 
-                        key={p.auction_player_id} 
-                        onClick={() => navigate(`/player/${p.id}`, { state: { from: '/admin-players' } })} 
+                      <tr
+                        key={p.auction_player_id}
+                        onClick={() => navigate(`/player/${p.id}`, { state: { from: '/admin-players' } })}
                         style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', cursor: 'pointer', transition: 'background 0.2s' }}
                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.2)'}
@@ -538,15 +602,15 @@ const AdminPlayersPage = () => {
                         <td style={{ padding: '1rem' }}>{p.mobile}</td>
                         <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button disabled={actionLoading} onClick={(e) => { e.stopPropagation(); handleEditClick(p); }} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Edit</button>
-                          
-                          <button 
-                            disabled={actionLoading} 
-                            onClick={(e) => { e.stopPropagation(); toggleIconStatus(p.auction_player_id, p.is_icon); }} 
-                            className="btn btn-outline" 
-                            style={{ 
-                              padding: '0.4rem 0.8rem', fontSize: '0.8rem', 
-                              color: p.is_icon ? 'var(--accent-gold)' : '', 
-                              borderColor: p.is_icon ? 'var(--accent-gold)' : '' 
+
+                          <button
+                            disabled={actionLoading}
+                            onClick={(e) => { e.stopPropagation(); toggleIconStatus(p.auction_player_id, p.is_icon); }}
+                            className="btn btn-outline"
+                            style={{
+                              padding: '0.4rem 0.8rem', fontSize: '0.8rem',
+                              color: p.is_icon ? 'var(--accent-gold)' : '',
+                              borderColor: p.is_icon ? 'var(--accent-gold)' : ''
                             }}
                           >
                             {p.is_icon ? 'Remove Icon' : 'Make Icon'}
@@ -569,8 +633,8 @@ const AdminPlayersPage = () => {
 
             {totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
-                <button 
-                  className="btn btn-outline" 
+                <button
+                  className="btn btn-outline"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   style={{ padding: '0.5rem 1rem' }}
@@ -580,8 +644,8 @@ const AdminPlayersPage = () => {
                 <div style={{ color: 'var(--text-muted)' }}>
                   Page {currentPage} of {totalPages}
                 </div>
-                <button 
-                  className="btn btn-outline" 
+                <button
+                  className="btn btn-outline"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   style={{ padding: '0.5rem 1rem' }}

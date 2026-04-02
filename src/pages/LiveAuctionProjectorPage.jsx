@@ -11,6 +11,8 @@ const LiveAuctionProjectorPage = () => {
     const [lastSoldPlayer, setLastSoldPlayer] = useState(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 700);
     const [isSmall, setIsSmall] = useState(window.innerWidth <= 600);
+    const [imageError, setImageError] = useState(false);
+    const [soldImageError, setSoldImageError] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -48,6 +50,14 @@ const LiveAuctionProjectorPage = () => {
 
         return () => supabase.removeChannel(subscription);
     }, []);
+
+    useEffect(() => {
+        setImageError(false);
+    }, [activePlayer?.id]);
+
+    useEffect(() => {
+        setSoldImageError(false);
+    }, [lastSoldPlayer?.id]);
 
     const fetchData = async () => {
         try {
@@ -188,20 +198,57 @@ const LiveAuctionProjectorPage = () => {
                         {/* Player Photo Column */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <img
-                                    src={activePlayer?.players?.photo_url || 'https://via.placeholder.com/600'}
-                                    alt="Player"
-                                    style={{
-                                        width: 'auto',
-                                        height: isMobile ? 'clamp(160px, 50vw, 280px)' : 'clamp(160px, 28vw, 420px)',
-                                        maxWidth: '100%',
-                                        objectFit: 'cover',
+                                {/* Player Number Badge */}
+                                {activePlayer?.player_number != null && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '12px',
+                                        left: '12px',
+                                        background: 'var(--accent-gold)',
+                                        color: '#000',
+                                        padding: 'clamp(4px, 0.8vh, 8px) clamp(8px, 1.5vw, 16px)',
+                                        borderRadius: 'clamp(4px, 0.8vw, 8px)',
+                                        fontSize: 'clamp(0.8rem, 1.5vw, 1.4rem)',
+                                        fontWeight: 900,
+                                        zIndex: 10,
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+                                        border: '2px solid rgba(0,0,0,0.2)',
+                                    }}>
+                                        #{activePlayer.player_number}
+                                    </div>
+                                )}
+                                {(activePlayer?.players?.photo_url && !imageError) ? (
+                                    <img
+                                        src={activePlayer.players.photo_url}
+                                        alt="Player"
+                                        onError={() => setImageError(true)}
+                                        style={{
+                                            width: 'auto',
+                                            height: isMobile ? 'clamp(200px, 60vw, 350px)' : 'clamp(300px, 40vw, 600px)',
+                                            maxWidth: '100%',
+                                            objectFit: 'cover',
+                                            borderRadius: 'clamp(12px, 2vw, 30px)',
+                                            border: 'clamp(4px, 0.8vw, 8px) solid #ffd700',
+                                            boxShadow: '0 0 80px rgba(255,215,0,0.2)',
+                                            display: 'block',
+                                        }}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: isMobile ? 'clamp(200px, 60vw, 350px)' : 'clamp(300px, 35vw, 500px)',
+                                        height: isMobile ? 'clamp(200px, 60vw, 350px)' : 'clamp(300px, 35vw, 500px)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, rgba(255,215,0,0.1), rgba(57,255,20,0.05))',
+                                        color: 'rgba(255,215,0,0.3)',
+                                        fontSize: isMobile ? 'clamp(4rem, 15vw, 8rem)' : 'clamp(6rem, 15vw, 15rem)',
+                                        fontWeight: 900,
                                         borderRadius: 'clamp(12px, 2vw, 30px)',
                                         border: 'clamp(4px, 0.8vw, 8px) solid #ffd700',
                                         boxShadow: '0 0 80px rgba(255,215,0,0.2)',
-                                        display: 'block',
-                                    }}
-                                />
+                                    }}>
+                                        {(activePlayer?.players?.first_name?.charAt(0) || '') + (activePlayer?.players?.last_name?.charAt(0) || '')}
+                                    </div>
+                                )}
                                 <div style={{
                                     position: 'absolute',
                                     bottom: 'clamp(-10px, -1.5vh, -18px)',
@@ -367,19 +414,59 @@ const LiveAuctionProjectorPage = () => {
                         animation: 'scaleUp 1s 0.3s both',
                         maxWidth: '90%', width: '100%',
                     }}>
-                        <img
-                            src={lastSoldPlayer.players.photo_url || 'https://via.placeholder.com/300'}
-                            alt="Sold"
-                            style={{
+                        <div style={{ position: 'relative' }}>
+                            {/* Player Number Badge for SOLD Overlay */}
+                            {lastSoldPlayer?.player_number != null && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-8px',
+                                    left: '-8px',
+                                    background: 'var(--accent-gold)',
+                                    color: '#000',
+                                    padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
+                                    borderRadius: '50px',
+                                    fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
+                                    fontWeight: 900,
+                                    zIndex: 10,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                    border: '2px solid #fff',
+                                }}>
+                                    #{lastSoldPlayer.player_number}
+                                </div>
+                            )}
+                            {(lastSoldPlayer.players.photo_url && !soldImageError) ? (
+                            <img
+                                src={lastSoldPlayer.players.photo_url}
+                                alt="Sold"
+                                onError={() => setSoldImageError(true)}
+                                style={{
+                                    width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                    height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                    borderRadius: '50%',
+                                    border: 'clamp(4px, 1vw, 12px) solid #39ff14',
+                                    objectFit: 'cover',
+                                    boxShadow: '0 0 40px rgba(57,255,20,0.3)',
+                                    flexShrink: 0,
+                                }}
+                            />
+                        ) : (
+                            <div style={{
                                 width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
                                 height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
                                 borderRadius: '50%',
                                 border: 'clamp(4px, 1vw, 12px) solid #39ff14',
-                                objectFit: 'cover',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(255,255,255,0.05))',
+                                color: 'rgba(57,255,20,0.3)',
+                                fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
+                                fontWeight: 900,
                                 boxShadow: '0 0 40px rgba(57,255,20,0.3)',
                                 flexShrink: 0,
-                            }}
-                        />
+                            }}>
+                                {(lastSoldPlayer.players.first_name?.charAt(0) || '') + (lastSoldPlayer.players.last_name?.charAt(0) || '')}
+                            </div>
+                        )}
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 0.8vh, 12px)', minWidth: 0 }}>
                             <div style={{
                                 fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.3rem, 4.5vw, 5rem)',
