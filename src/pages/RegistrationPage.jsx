@@ -97,13 +97,25 @@ const RegistrationPage = () => {
 
       if (playerError) throw playerError;
 
+      // Generate next player_number for this auction
+      const { data: maxData } = await supabase
+        .from('auction_players')
+        .select('player_number')
+        .eq('auction_id', activeAuction.id)
+        .order('player_number', { ascending: false })
+        .limit(1);
+      const nextNumber = (maxData && maxData.length > 0 && maxData[0].player_number != null)
+        ? maxData[0].player_number + 1
+        : 1;
+
       // Insert into auction_players
       const { error: auctionPlayerError } = await supabase
         .from('auction_players')
         .insert([{
           auction_id: activeAuction.id,
           player_id: playerData.id,
-          approval_status: 'pending'
+          approval_status: 'pending',
+          player_number: nextNumber
         }]);
 
       if (auctionPlayerError) throw auctionPlayerError;

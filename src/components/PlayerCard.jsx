@@ -7,6 +7,11 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
   if (viewMode === 'list') {
     return (
       <Link to={`/player/${player.id}`} className="glass-panel" style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s', textDecoration: 'none' }}>
+        {player.player_number != null && (
+          <div style={{ minWidth: '42px', height: '42px', borderRadius: '8px', background: 'var(--accent-gold)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem', flexShrink: 0 }}>
+            #{player.player_number}
+          </div>
+        )}
         <img 
           src={player.photo_url || fallbackAvatar} 
           alt={player.first_name} 
@@ -39,10 +44,12 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
 
   return (
     <Link to={`/player/${player.id}`} className="glass-panel render-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', textDecoration: 'none' }}>
-      {/* Player Code Badge */}
-      <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'var(--accent-gold)', color: '#000', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', zIndex: 10 }}>
-        {player.player_code}
-      </div>
+      {/* Player Number Badge */}
+      {player.player_number != null && (
+        <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'var(--accent-gold)', color: '#000', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', zIndex: 10, letterSpacing: '0.05em' }}>
+          #{player.player_number}
+        </div>
+      )}
 
       {/* Image Section */}
       <div style={{ position: 'relative', width: '100%', paddingTop: '100%', backgroundColor: '#0f172a' }}>

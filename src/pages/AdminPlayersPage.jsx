@@ -78,7 +78,8 @@ const AdminPlayersPage = () => {
               ...playerDetails,
               auction_player_id: ap.id,
               approval_status: ap.approval_status,
-              is_icon: ap.is_icon || false
+              is_icon: ap.is_icon || false,
+              player_number: ap.player_number ?? null
             };
           });
           
@@ -273,11 +274,23 @@ const AdminPlayersPage = () => {
         const { data: newPlayerData, error: insertError } = await supabase.from('players').insert([playerPayload]).select().single();
         if (insertError) throw insertError;
 
+        // Generate next player_number for this auction
+        const { data: maxData } = await supabase
+          .from('auction_players')
+          .select('player_number')
+          .eq('auction_id', activeAuction.id)
+          .order('player_number', { ascending: false })
+          .limit(1);
+        const nextNumber = (maxData && maxData.length > 0 && maxData[0].player_number != null)
+          ? maxData[0].player_number + 1
+          : 1;
+
         const { error: apError } = await supabase.from('auction_players').insert([{
           auction_id: activeAuction.id,
           player_id: newPlayerData.id,
           approval_status: 'approved', // Automatically auto-approve Admins directly adding players
-          is_icon: formData.is_icon || false
+          is_icon: formData.is_icon || false,
+          player_number: nextNumber
         }]);
         if (apError) throw apError;
         alert(`Player ${formData.first_name} added successfully!`);
@@ -493,6 +506,7 @@ const AdminPlayersPage = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', width: '50px' }}>No.</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Photo</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Name</th>
                       <th style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>Role</th>
@@ -509,6 +523,9 @@ const AdminPlayersPage = () => {
                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.2)'}
                       >
+                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--accent-gold)', minWidth: '50px' }}>
+                          {p.player_number != null ? `#${p.player_number}` : '-'}
+                        </td>
                         <td style={{ padding: '1rem' }}>
                           <img src={p.photo_url || 'https://via.placeholder.com/50'} alt="Player" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '4px' }} />
                         </td>
