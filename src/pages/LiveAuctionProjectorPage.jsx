@@ -154,7 +154,7 @@ const LiveAuctionProjectorPage = () => {
         const heartbeat = setInterval(() => {
             console.log('Heartbeat sync...');
             fetchData();
-        }, 60000);
+        }, 30000);
 
         return () => {
             supabase.removeChannel(channel);
@@ -231,12 +231,18 @@ const LiveAuctionProjectorPage = () => {
                     }}>
                         {activeAuction?.auction_name || 'LIVE AUCTION'}
                     </h2>
-                    <div style={{
-                        padding: '0.4rem 1.2rem', background: '#ff4444', color: '#fff',
-                        fontWeight: 'bold', borderRadius: '4px', letterSpacing: '4px',
-                        fontSize: 'clamp(0.75rem, 1.5vw, 1rem)',
-                        animation: 'pulse 1.5s infinite', whiteSpace: 'nowrap',
-                    }}>
+                    <div 
+                        onClick={() => fetchData()}
+                        style={{
+                            padding: '0.4rem 1.2rem', background: '#ff4444', color: '#fff',
+                            fontWeight: 'bold', borderRadius: '4px', letterSpacing: '4px',
+                            fontSize: 'clamp(0.75rem, 1.5vw, 1rem)',
+                            animation: 'pulse 1.5s infinite', whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                        }}
+                        title="Click to force sync"
+                    >
                         LIVE
                     </div>
                 </div>
