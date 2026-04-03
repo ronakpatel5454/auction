@@ -9,10 +9,13 @@ const LiveAuctionProjectorPage = () => {
     const [teams, setTeams] = useState([]);
     const [showSoldOverlay, setShowSoldOverlay] = useState(false);
     const [lastSoldPlayer, setLastSoldPlayer] = useState(null);
+    const [showUnsoldOverlay, setShowUnsoldOverlay] = useState(false);
+    const [lastUnsoldPlayer, setLastUnsoldPlayer] = useState(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 700);
     const [isSmall, setIsSmall] = useState(window.innerWidth <= 600);
     const [imageError, setImageError] = useState(false);
     const [soldImageError, setSoldImageError] = useState(false);
+    const [unsoldImageError, setUnsoldImageError] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -23,48 +26,14 @@ const LiveAuctionProjectorPage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    useEffect(() => {
-        fetchData();
-
-        const subscription = supabase
-            .channel('projector_updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, payload => {
-                const { new: updatedPlayer } = payload;
-
-                if (updatedPlayer.auction_status === 'sold') {
-                    handleSoldEvent(updatedPlayer);
-                }
-
-                setActivePlayer(prev => {
-                    if (prev && prev.id === updatedPlayer.id) {
-                        if (updatedPlayer.auction_status !== 'active') return null;
-                        return { ...prev, ...updatedPlayer };
-                    }
-                    if (updatedPlayer.auction_status === 'active') fetchData();
-                    return prev;
-                });
-
-                if (updatedPlayer.auction_status === 'active') fetchData();
-            })
-            .subscribe();
-
-        return () => supabase.removeChannel(subscription);
-    }, []);
-
-    useEffect(() => {
-        setImageError(false);
-    }, [activePlayer?.id]);
-
-    useEffect(() => {
-        setSoldImageError(false);
-    }, [lastSoldPlayer?.id]);
-
     const fetchData = async () => {
         try {
+            console.log("Fetching fresh projector data...");
             const { data: auctionData } = await supabase
                 .from('auctions')
                 .select('*')
                 .in('status', ['registration_open', 'running'])
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
@@ -80,12 +49,15 @@ const LiveAuctionProjectorPage = () => {
                     .eq('auction_id', auctionData.id)
                     .eq('auction_status', 'active')
                     .limit(1)
-                    .single();
+                    .maybeSingle();
 
                 setActivePlayer(apData || null);
+            } else {
+                setTeams([]);
+                setActivePlayer(null);
             }
         } catch (err) {
-            console.error(err);
+            console.error("Projector fetch error:", err);
         } finally {
             setLoading(false);
         }
@@ -104,9 +76,104 @@ const LiveAuctionProjectorPage = () => {
             setTimeout(() => {
                 setShowSoldOverlay(false);
                 setLastSoldPlayer(null);
+                fetchData(); // Sync setup for next player
             }, 8000);
         }
     };
+
+    const handleUnsoldEvent = async (apRecord) => {
+        const { data } = await supabase
+            .from('auction_players')
+            .select('*, players(*)')
+            .eq('id', apRecord.id)
+            .single();
+
+        if (data) {
+            setLastUnsoldPlayer(data);
+            setShowUnsoldOverlay(true);
+            setTimeout(() => {
+                setShowUnsoldOverlay(false);
+                setLastUnsoldPlayer(null);
+                fetchData(); // Sync setup for next player
+            }, 8000);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+
+        // 1. Robust Realtime Subscription
+        const channel = supabase
+            .channel('projector_sync_channel')
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'auction_players' 
+            }, payload => {
+                console.log('Realtime Player Event:', payload.eventType, payload.new?.auction_status);
+                const { new: updatedPlayer, eventType } = payload;
+
+                if (updatedPlayer.auction_status === 'sold') {
+                    handleSoldEvent(updatedPlayer);
+                } else if (updatedPlayer.auction_status === 'unsold') {
+                    handleUnsoldEvent(updatedPlayer);
+                } else {
+                    // For bidding updates or new active player, refresh everything to ensure joined data is correct
+                    fetchData();
+                }
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'auctions'
+            }, () => {
+                console.log('Realtime Auction Event triggered refresh');
+                fetchData();
+            })
+            .subscribe((status, err) => {
+                console.log('Realtime Status:', status);
+                if (status === 'SUBSCRIPTION_ERROR') {
+                    console.error('Realtime Subscription Error:', err);
+                }
+                if (status === 'SUBSCRIBED') {
+                    // Refresh on successful subscription to catch any missed events during connect
+                    fetchData();
+                }
+            });
+
+        // 2. Visibility Change Listener (Auto-sync when tab focused)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('Tab focused, syncing projector...');
+                fetchData();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // 3. Heartbeat Sync (Backup in case events missed)
+        const heartbeat = setInterval(() => {
+            console.log('Heartbeat sync...');
+            fetchData();
+        }, 60000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearInterval(heartbeat);
+        };
+    }, []);
+
+    useEffect(() => {
+        setImageError(false);
+    }, [activePlayer?.id]);
+
+    useEffect(() => {
+        setSoldImageError(false);
+    }, [lastSoldPlayer?.id]);
+
+    useEffect(() => {
+        setUnsoldImageError(false);
+    }, [lastUnsoldPlayer?.id]);
 
     if (loading) return <Loader message="CALIBRATING PROJECTOR..." />;
 
@@ -175,7 +242,7 @@ const LiveAuctionProjectorPage = () => {
                 </div>
 
                 {/* Main Content */}
-                {!activePlayer && !showSoldOverlay ? (
+                {!activePlayer && !showSoldOverlay && !showUnsoldOverlay ? (
                     <div style={{
                         flex: 1, display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center',
@@ -183,7 +250,7 @@ const LiveAuctionProjectorPage = () => {
                     }}>
                         <div style={{ fontSize: 'clamp(4rem, 15vw, 10rem)', opacity: 0.1, marginBottom: '2rem' }}>🏏</div>
                         <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 4rem)', color: 'rgba(255,255,255,0.2)', margin: 0 }}>
-                            WAITING FOR NEXT PLAYER...
+                            WAITING FOR NEXT TURN...
                         </h1>
                     </div>
                 ) : (
@@ -370,6 +437,7 @@ const LiveAuctionProjectorPage = () => {
 
             {/* SOLD Overlay */}
             {showSoldOverlay && lastSoldPlayer && (
+                // ...existing sold overlay code (omitted for brevity in replacement but I will include it full)
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     background: 'radial-gradient(circle at center, rgba(16,24,39,0.98) 0%, #050a10 100%)',
@@ -526,6 +594,142 @@ const LiveAuctionProjectorPage = () => {
                                 }}>
                                     {soldTeam?.team_name}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* UNSOLD Overlay */}
+            {showUnsoldOverlay && lastUnsoldPlayer && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'radial-gradient(circle at center, rgba(31,41,55,0.98) 0%, #050a10 100%)',
+                    zIndex: 1000,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    animation: 'fadeIn 0.8s cubic-bezier(0.19,1,0.22,1)',
+                    border: 'clamp(6px, 1.5vw, 15px) solid #ff4444',
+                    overflowY: 'auto',
+                    padding: 'clamp(16px, 3vw, 40px)',
+                    boxSizing: 'border-box',
+                }}>
+                    <div style={{
+                        fontSize: 'clamp(1rem, 3.5vw, 3rem)', color: '#fff',
+                        textTransform: 'uppercase', letterSpacing: 'clamp(2px, 1vw, 12px)',
+                        marginBottom: 'clamp(4px, 1vh, 12px)',
+                        position: 'relative', zIndex: 2,
+                        animation: 'slideUp 1s ease-out', textAlign: 'center',
+                    }}>
+                        Better Luck Next Time!
+                    </div>
+
+                    <div style={{
+                        fontSize: 'clamp(3.5rem, 14vw, 12rem)', fontWeight: 900,
+                        color: '#ff4444', textShadow: '0 0 30px rgba(255,68,68,0.5)',
+                        transform: 'rotate(-3deg)',
+                        marginBottom: 'clamp(12px, 2vh, 32px)',
+                        position: 'relative', zIndex: 2,
+                        animation: 'bounceIn 1.2s cubic-bezier(0.36,0,0.66,-0.56) both',
+                        textAlign: 'center', width: '100%',
+                    }}>
+                        UNSOLD
+                    </div>
+
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: isSmall ? 'column' : 'row',
+                        alignItems: 'center',
+                        gap: isSmall ? '16px' : 'clamp(16px, 4vw, 60px)',
+                        textAlign: isSmall ? 'center' : 'left',
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: isSmall ? '30px 20px' : 'clamp(20px, 4vh, 70px)',
+                        borderRadius: 'clamp(12px, 2vw, 30px)',
+                        border: '2px solid rgba(255,68,68,0.4)',
+                        boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+                        position: 'relative', zIndex: 2,
+                        animation: 'scaleUp 1s 0.3s both',
+                        maxWidth: '85%', width: '100%',
+                    }}>
+                        <div style={{ position: 'relative' }}>
+                             {lastUnsoldPlayer?.player_number != null && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-8px',
+                                    left: '-8px',
+                                    background: '#ff4444',
+                                    color: '#fff',
+                                    padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
+                                    borderRadius: '50px',
+                                    fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
+                                    fontWeight: 900,
+                                    zIndex: 10,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                    border: '2px solid #fff',
+                                }}>
+                                    #{lastUnsoldPlayer.player_number}
+                                </div>
+                            )}
+                            {(lastUnsoldPlayer.players.photo_url && !unsoldImageError) ? (
+                            <img
+                                src={lastUnsoldPlayer.players.photo_url}
+                                alt="Unsold"
+                                onError={() => setUnsoldImageError(true)}
+                                style={{
+                                    width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                    height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                    borderRadius: '50%',
+                                    border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
+                                    objectFit: 'cover',
+                                    boxShadow: '0 0 40px rgba(148,163,184,0.2)',
+                                    flexShrink: 0,
+                                    filter: 'grayscale(0.5)'
+                                }}
+                            />
+                        ) : (
+                            <div style={{
+                                width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                borderRadius: '50%',
+                                border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: 'linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,255,255,0.05))',
+                                color: 'rgba(255,68,68,0.3)',
+                                fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
+                                fontWeight: 900,
+                                boxShadow: '0 0 40px rgba(255,68,68,0.1)',
+                                flexShrink: 0,
+                            }}>
+                                {(lastUnsoldPlayer.players.first_name?.charAt(0) || '') + (lastUnsoldPlayer.players.last_name?.charAt(0) || '')}
+                            </div>
+                        )}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.2vh, 20px)', minWidth: 0 }}>
+                            <div style={{
+                                fontSize: isSmall ? 'clamp(1.5rem, 6vw, 2.5rem)' : 'clamp(1.5rem, 5vw, 6rem)',
+                                fontWeight: 'bold', color: '#fff', wordBreak: 'break-word',
+                            }}>
+                                {lastUnsoldPlayer.players.first_name} {lastUnsoldPlayer.players.last_name}
+                            </div>
+                            <div style={{
+                                fontSize: isSmall ? 'clamp(0.9rem, 3.5vw, 1.3rem)' : 'clamp(1rem, 2.5vw, 3rem)',
+                                color: 'rgba(255,255,255,0.7)',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                gap: 'clamp(10px, 2vw, 30px)',
+                            }}>
+                                <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '4px' }}>{lastUnsoldPlayer.players.player_role}</span>
+                                <span style={{ opacity: 0.5 }}>|</span>
+                                <span style={{ color: '#ff4444' }}>BASE: ₹ {activeAuction?.base_price?.toLocaleString()}</span>
+                            </div>
+                            <div style={{
+                                fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1rem)' : 'clamp(0.9rem, 1.5vw, 2rem)',
+                                color: 'rgba(255,255,255,0.5)',
+                                fontStyle: 'italic',
+                                marginTop: '10px'
+                            }}>
+                                This player may come back for accelerated auction.
                             </div>
                         </div>
                     </div>
