@@ -345,7 +345,9 @@ const LiveAuctionPage = () => {
 
     const pendingPlayers = players.filter(p => {
         const matchesStatus = !['sold', 'unsold', 'active'].includes(p.auction_status) && !p.is_icon;
-        const matchesSearch = (p.players.first_name + ' ' + p.players.last_name).toLowerCase().includes(searchTerm.toLowerCase());
+        const lowSearch = searchTerm.toLowerCase();
+        const matchesSearch = (p.players.first_name + ' ' + p.players.last_name).toLowerCase().includes(lowSearch) || 
+                              (p.player_number && p.player_number.toString().includes(searchTerm));
         const matchesRole = roleFilter === 'ALL' || p.players.player_role === roleFilter;
         return matchesStatus && matchesSearch && matchesRole;
     });
@@ -420,7 +422,10 @@ const LiveAuctionPage = () => {
                                         </div>
 
                                         <div style={{ textAlign: 'left' }}>
-                                            <h1 style={{ fontSize: '3rem', margin: 0, color: 'var(--text-main)' }}>{activePlayer.players.first_name} {activePlayer.players.last_name}</h1>
+                                            <h1 style={{ fontSize: '3rem', margin: 0, color: 'var(--text-main)' }}>
+                                                {activePlayer.player_number && <span style={{ color: 'var(--accent-gold)', marginRight: '1rem' }}>#{activePlayer.player_number}</span>}
+                                                {activePlayer.players.first_name} {activePlayer.players.last_name}
+                                            </h1>
                                             <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>State: {activePlayer.players.state} | Base Price: ₹{activeAuction.base_price}</p>
 
                                             <div style={{ marginTop: '2rem', background: 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--accent-gold)' }}>
@@ -508,7 +513,7 @@ const LiveAuctionPage = () => {
                             <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 <input 
                                     type="text" 
-                                    placeholder="Search player name..." 
+                                    placeholder="Search name or number..." 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', color: '#fff', fontSize: '0.9rem' }}
@@ -533,7 +538,10 @@ const LiveAuctionPage = () => {
                                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px' }}>
                                             <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{p.players.first_name} {p.players.last_name}</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                    {p.player_number && <span style={{ color: 'var(--accent-gold)', marginRight: '0.5rem' }}>#{p.player_number}</span>}
+                                                    {p.players.first_name} {p.players.last_name}
+                                                </div>
                                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.players.player_role}</div>
                                             </div>
                                             <button
@@ -561,6 +569,7 @@ const LiveAuctionPage = () => {
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--accent-gold)' }}>
+                                            <th style={{ padding: '1rem', width: '80px' }}>No.</th>
                                             <th style={{ padding: '1rem' }}>Player</th>
                                             <th style={{ padding: '1rem' }}>Role</th>
                                             <th style={{ padding: '1rem' }}>Sold To Team</th>
@@ -573,6 +582,7 @@ const LiveAuctionPage = () => {
                                             const team = teams.find(t => t.id === p.team_id);
                                             return (
                                                 <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                                                    <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>#{p.player_number || '-'}</td>
                                                     <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                         <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                                         <div>{p.players.first_name} {p.players.last_name}</div>
@@ -628,6 +638,7 @@ const LiveAuctionPage = () => {
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--accent-gold)' }}>
+                                            <th style={{ padding: '1rem', width: '80px' }}>No.</th>
                                             <th style={{ padding: '1rem' }}>Player</th>
                                             <th style={{ padding: '1rem' }}>Role</th>
                                             <th style={{ padding: '1rem' }}>State</th>
@@ -637,6 +648,7 @@ const LiveAuctionPage = () => {
                                     <tbody>
                                         {unsoldPlayers.map(p => (
                                             <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>#{p.player_number || '-'}</td>
                                                 <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                     <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                                     <div>{p.players.first_name} {p.players.last_name}</div>

@@ -369,9 +369,11 @@ const AdminPlayersPage = () => {
 
   const filteredList = playersList.filter(p => {
     const matchesTab = p.approval_status === activeTab;
+    const lowSearch = searchTerm.toLowerCase();
     const matchesSearch = searchTerm === '' ||
-      `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.mobile && p.mobile.includes(searchTerm));
+      `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(lowSearch) ||
+      (p.mobile && p.mobile.includes(searchTerm)) ||
+      (p.player_number && p.player_number.toString().includes(searchTerm));
     return matchesTab && matchesSearch;
   });
 
@@ -556,7 +558,7 @@ const AdminPlayersPage = () => {
               <div style={{ flex: '1', minWidth: '250px', maxWidth: '400px' }}>
                 <input
                   type="text"
-                  placeholder="Search by name or mobile..."
+                  placeholder="Search by name, mobile or number..."
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   className="form-input"

@@ -92,12 +92,13 @@ const PublicPlayersPage = () => {
             }
         });
 
-        // Apply text search (name and area)
+        // Apply text search (name, area, and number)
         if (currentSearch) {
             const lowSearch = currentSearch.toLowerCase();
             result = result.filter(p => 
                 `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(lowSearch) ||
-                (p.area && p.area.toLowerCase().includes(lowSearch))
+                (p.area && p.area.toLowerCase().includes(lowSearch)) ||
+                (p.player_number && p.player_number.toString().includes(currentSearch))
             );
         }
 
@@ -145,7 +146,7 @@ const PublicPlayersPage = () => {
                                 <div style={{ flex: '1', minWidth: '280px' }}>
                                     <input
                                         type="text"
-                                        placeholder="Search by name or area..."
+                                        placeholder="Search by name, area or number..."
                                         value={searchTerm}
                                         onChange={(e) => handleSearchChange(e.target.value)}
                                         className="form-input"
