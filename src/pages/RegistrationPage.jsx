@@ -6,6 +6,7 @@ import { Loader } from '../components/Loader';
 
 const RegistrationPage = () => {
   const [activeAuction, setActiveAuction] = useState(null);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -23,12 +24,22 @@ const RegistrationPage = () => {
       try {
         const { data, error } = await supabase
           .from('auctions')
-          .select('id, auction_name, qr_code_url, per_player_fees')
+          .select('id, auction_name, qr_code_url, per_player_fees, status')
           .in('status', ['registration_open', 'running'])
+          .order('created_at', { ascending: false })
           .limit(1)
-          .single();
-        if (error && error.code !== 'PGRST116') throw error;
-        setActiveAuction(data);
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          if (data.status === 'running') {
+            setRegistrationClosed(true);
+            setActiveAuction(data);
+          } else if (data.status === 'registration_open') {
+            setActiveAuction(data);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -54,8 +65,19 @@ const RegistrationPage = () => {
 
     try {
       if (!activeAuction) throw new Error("No active auction available for registration.");
+      if (registrationClosed) throw new Error("Registration is now closed for this auction.");
 
-      // Check if mobile already exists
+      // Double check current status from DB for safety
+      const { data: latestStatus } = await supabase
+        .from('auctions')
+        .select('status')
+        .eq('id', activeAuction.id)
+        .single();
+      
+      if (latestStatus?.status === 'running') {
+        setRegistrationClosed(true);
+        throw new Error("Registration just closed as the auction has started!");
+      }
       const { data: existingPlayers, error: checkError } = await supabase
         .from('players')
         .select('id')
@@ -143,6 +165,42 @@ const RegistrationPage = () => {
             <h2 style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>You're Registered!</h2>
             <p className="text-muted" style={{ marginBottom: '2rem' }}>
               Your application is currently pending approval. You will be notified once the admin approves your registration.
+            </p>
+            <a href="#/" className="btn btn-outline">Return to Home</a>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (registrationClosed) {
+    return (
+      <div className="flex-col min-h-screen">
+        <PageHeader title="Registration Closed" subtitle={activeAuction?.auction_name} showLogos={false} />
+        <main className="container flex-col items-center justify-center text-center" style={{ flex: 1, padding: '4rem 1rem' }}>
+          <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '600px', width: '100%', margin: '0 auto', border: '1px solid rgba(255, 68, 68, 0.3)' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚫</div>
+            <h2 style={{ color: '#ff4444', marginBottom: '1rem' }}>Registration is Closed</h2>
+            <p className="text-muted" style={{ marginBottom: '2rem' }}>
+              The live auction for <strong>{activeAuction?.auction_name}</strong> has already started. We are no longer accepting new registrations.
+            </p>
+            <a href="#/" className="btn btn-outline">Return to Home</a>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!activeAuction) {
+    return (
+      <div className="flex-col min-h-screen">
+        <PageHeader title="Player Registration" showLogos={false} />
+        <main className="container flex-col items-center justify-center text-center" style={{ flex: 1, padding: '4rem 1rem' }}>
+          <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '600px', width: '100%', margin: '0 auto' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
+            <h2 style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>No Active Auction</h2>
+            <p className="text-muted" style={{ marginBottom: '2rem' }}>
+              There are currently no auctions open for registration. Please check back later.
             </p>
             <a href="#/" className="btn btn-outline">Return to Home</a>
           </div>
