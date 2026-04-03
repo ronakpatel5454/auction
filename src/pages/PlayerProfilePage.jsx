@@ -177,6 +177,100 @@ const PlayerProfilePage = () => {
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.4rem' }}>Area / Village / City</div>
                 <div style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 600, color: 'var(--text-main)' }}>{player.area || 'N/A'}</div>
               </div>
+
+              {location.state?.from === '/admin-players' && (
+                <div style={{
+                  gridColumn: '1 / -1',
+                  marginTop: '2rem',
+                  padding: '2rem',
+                  background: 'rgba(255, 215, 0, 0.03)',
+                  border: '1px solid rgba(255, 215, 0, 0.15)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2rem',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Background Watermark/Grain effect would be nice but keeping it clean */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    background: 'var(--accent-gold)',
+                    color: '#000',
+                    fontSize: '0.65rem',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '50px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    opacity: 0.8
+                  }}>
+                    ADMIN ACCESS ONLY
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '2rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.6rem', opacity: 0.8 }}>Secure Mobile</div>
+                      <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: 700, color: '#fff', textShadow: '0 0 10px rgba(255,215,0,0.1)' }}>{player.mobile || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.6rem', opacity: 0.8 }}>Secure Email</div>
+                      <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: 700, color: '#fff', textShadow: '0 0 10px rgba(255,215,0,0.1)' }}>{player.email || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  {player.aadhar_card_url && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '1.2rem', opacity: 0.8 }}>Verification Document (Aadhar)</div>
+                      <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        maxWidth: '500px',
+                        aspectRatio: '1.6 / 1', // Common ID card aspect ratio
+                        borderRadius: '12px',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        padding: '1rem',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,215,0,0.05)',
+                        overflow: 'hidden'
+                      }}>
+                        <img
+                          src={player.aadhar_card_url}
+                          alt="Aadhar Card"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            transition: 'transform 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        />
+                        {/* Interactive overlay icon */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '1.5rem',
+                          right: '1.5rem',
+                          background: 'rgba(57, 255, 20, 0.2)',
+                          backdropFilter: 'blur(4px)',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--accent-green)',
+                          color: 'var(--accent-green)',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          letterSpacing: '1px'
+                        }}>
+                          VERIFIED ID
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>

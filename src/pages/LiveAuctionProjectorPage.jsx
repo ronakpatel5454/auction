@@ -282,13 +282,25 @@ const LiveAuctionProjectorPage = () => {
                                 {activePlayer?.players?.first_name}{' '}
                                 <span>{activePlayer?.players?.last_name}</span>
                             </h1>
-                            <p style={{
+                            <div style={{
                                 fontSize: isMobile ? 'clamp(0.7rem, 3vw, 1rem)' : 'clamp(0.75rem, 1.5vw, 1.8rem)',
-                                color: 'rgba(255,255,255,0.5)',
+                                color: 'rgba(255,255,255,0.7)',
                                 margin: '0 0 clamp(12px, 4vh, 40px) 0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'clamp(4px, 1vh, 8px)'
                             }}>
-                                State: {activePlayer?.players?.state} | Base: ₹{activeAuction?.base_price?.toLocaleString()}
-                            </p>
+                                <div style={{ display: 'flex', gap: 'clamp(8px, 1.5vw, 20px)', flexWrap: 'wrap' }}>
+                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9em' }}>Batting Style:</span>
+                                    <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>{activePlayer?.players?.batting_style || 'N/A'}</span>
+                                    <span style={{ opacity: 0.3 }}>|</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9em' }}>Bowling Style:</span>
+                                    <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>{activePlayer?.players?.bowling_style || 'N/A'}</span>
+                                </div>
+                                <div style={{ opacity: 0.5 }}>
+                                    State: {activePlayer?.players?.state} | Base: ₹{activeAuction?.base_price?.toLocaleString()}
+                                </div>
+                            </div>
 
                             <div style={{
                                 background: 'rgba(255,255,255,0.03)',
@@ -479,6 +491,21 @@ const LiveAuctionProjectorPage = () => {
                                 color: '#ffd700', fontWeight: 900,
                             }}>
                                 ₹ {lastSoldPlayer.sold_price.toLocaleString()}
+                            </div>
+                            <div style={{
+                                fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1.2rem)' : 'clamp(0.9rem, 2vw, 2.2rem)',
+                                color: 'rgba(255,255,255,0.6)',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                gap: 'clamp(8px, 1.5vw, 20px)',
+                                marginBottom: 'clamp(8px, 1.5vh, 20px)'
+                            }}>
+                                <span style={{ opacity: 0.5 }}>Batting:</span>
+                                <span>{lastSoldPlayer.players.batting_style}</span>
+                                <span style={{ opacity: 0.3 }}>|</span>
+                                <span style={{ opacity: 0.5 }}>Bowling:</span>
+                                <span>{lastSoldPlayer.players.bowling_style}</span>
                             </div>
                             <div style={{
                                 display: 'flex', alignItems: 'center',
