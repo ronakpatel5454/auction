@@ -106,10 +106,10 @@ const LiveAuctionProjectorPage = () => {
         // 1. Robust Realtime Subscription
         const channel = supabase
             .channel('projector_sync_channel')
-            .on('postgres_changes', { 
-                event: '*', 
-                schema: 'public', 
-                table: 'auction_players' 
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'auction_players'
             }, payload => {
                 console.log('Realtime Player Event:', payload.eventType, payload.new?.auction_status);
                 const { new: updatedPlayer, old: oldPlayer, eventType } = payload;
@@ -195,6 +195,52 @@ const LiveAuctionProjectorPage = () => {
         setUnsoldImageError(false);
     }, [lastUnsoldPlayer?.id]);
 
+    // Keyboard controls for testing SOLD / UNSOLD overlay animations manually
+    // useEffect(() => {
+    //     const handleKeyDown = (e) => {
+    //         if (e.key === 's' || e.key === 'S') {
+    //             console.log("Triggering mock SOLD overlay");
+    //             setLastSoldPlayer({
+    //                 player_number: 99,
+    //                 sold_price: 1500000,
+    //                 players: {
+    //                     first_name: "Virat",
+    //                     last_name: "Kohli",
+    //                     photo_url: "",
+    //                     batting_style: "Right-hand bat",
+    //                     bowling_style: "Right-arm medium",
+    //                     player_role: "Batsman"
+    //                 },
+    //                 team_id: teams[0]?.id || null
+    //             });
+    //             setShowSoldOverlay(true);
+    //             setTimeout(() => {
+    //                 setShowSoldOverlay(false);
+    //             }, 8000);
+    //         }
+    //         if (e.key === 'u' || e.key === 'U') {
+    //             console.log("Triggering mock UNSOLD overlay");
+    //             setLastUnsoldPlayer({
+    //                 player_number: 45,
+    //                 players: {
+    //                     first_name: "Rohit",
+    //                     last_name: "Sharma",
+    //                     photo_url: "",
+    //                     batting_style: "Right-hand bat",
+    //                     bowling_style: "Right-arm offbreak",
+    //                     player_role: "Batsman"
+    //                 }
+    //             });
+    //             setShowUnsoldOverlay(true);
+    //             setTimeout(() => {
+    //                 setShowUnsoldOverlay(false);
+    //             }, 8000);
+    //         }
+    //     };
+    //     window.addEventListener('keydown', handleKeyDown);
+    //     return () => window.removeEventListener('keydown', handleKeyDown);
+    // }, [teams]);
+
     if (loading) return <Loader message="CALIBRATING PROJECTOR..." />;
 
     const winningTeam = activePlayer?.current_bid_team_id
@@ -251,7 +297,7 @@ const LiveAuctionProjectorPage = () => {
                     }}>
                         {activeAuction?.auction_name || 'LIVE AUCTION'}
                     </h2>
-                    <div 
+                    <div
                         onClick={() => fetchData()}
                         style={{
                             padding: '0.4rem 1.2rem', background: '#ff4444', color: '#fff',
@@ -463,7 +509,6 @@ const LiveAuctionProjectorPage = () => {
 
             {/* SOLD Overlay */}
             {showSoldOverlay && lastSoldPlayer && (
-                // ...existing sold overlay code (omitted for brevity in replacement but I will include it full)
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     background: 'radial-gradient(circle at center, rgba(16,24,39,0.98) 0%, #050a10 100%)',
@@ -483,142 +528,230 @@ const LiveAuctionProjectorPage = () => {
                         ))}
                     </div>
 
-                    <div style={{
-                        fontSize: 'clamp(1rem, 3.5vw, 3rem)', color: '#fff',
-                        textTransform: 'uppercase', letterSpacing: 'clamp(2px, 1vw, 12px)',
-                        marginBottom: 'clamp(4px, 1vh, 12px)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'slideUp 1s ease-out', textAlign: 'center',
-                    }}>
-                        Congratulations!
+                    {/* Cricket Bat swing cinematic animation */}
+                    <div className="cricket-anim-sold-wrapper">
+                        <svg width="400" height="400" viewBox="0 0 400 400" style={{ position: 'absolute', zIndex: 5, pointerEvents: 'none' }}>
+                            <defs>
+                                <linearGradient id="batWood" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#d97706" />
+                                    <stop offset="50%" stopColor="#b45309" />
+                                    <stop offset="100%" stopColor="#78350f" />
+                                </linearGradient>
+                                <linearGradient id="batGrip" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#ffd700" />
+                                    <stop offset="100%" stopColor="#b45309" />
+                                </linearGradient>
+                                <radialGradient id="ballShade" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stopColor="#ff6b6b" />
+                                    <stop offset="70%" stopColor="#b91c1c" />
+                                    <stop offset="100%" stopColor="#450a0a" />
+                                </radialGradient>
+                            </defs>
+
+                            {/* Shockwave & sparks */}
+                            <circle className="anim-shockwave" cx="200" cy="200" r="1" fill="none" stroke="#ffd700" strokeWidth="4" />
+                            <g className="anim-sparks" style={{ transformOrigin: '200px 200px' }}>
+                                <path d="M200,160 L200,130 M200,240 L200,270 M160,200 L130,200 M240,200 L270,200 M170,170 L150,150 M230,230 L250,250 M170,230 L150,250 M230,170 L250,150" stroke="#ffd700" strokeWidth="6" strokeLinecap="round" />
+                            </g>
+
+                            {/* DANCING CRICKETER CHARACTER */}
+                            <g className="dancing-player-body" style={{ transformOrigin: '200px 220px' }}>
+                                {/* Legs */}
+                                <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-left" style={{ transformOrigin: '188px 220px' }} />
+                                <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
+
+                                <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-right" style={{ transformOrigin: '212px 220px' }} />
+                                <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
+
+                                {/* Torso */}
+                                <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#ffd700" stroke="#ffd700" strokeWidth="2" />
+                                {/* Torso details / jersey sash */}
+                                <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#1e3a8a" />
+                                <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">7</text>
+
+                                {/* Left Arm (Waving) */}
+                                <path d="M 180,175 Q 150,160 140,185" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="138" cy="188" r="6" fill="#fff" />
+
+                                {/* Right Arm (Holding the spinning bat) */}
+                                <path d="M 220,175 Q 250,175 260,195" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="262" cy="198" r="6" fill="#fff" />
+
+                                {/* Celebrating Rotating Bat */}
+                                <g className="celebrating-bat" style={{ transformOrigin: '262px 198px' }}>
+                                    {/* Handle */}
+                                    <rect x="259" y="168" width="6" height="30" rx="2" fill="url(#batGrip)" />
+                                    {/* Blade */}
+                                    <path d="M 254,88 L 270,88 L 274,168 C 274,172 270,175 262,175 C 254,175 250,172 250,168 Z" fill="url(#batWood)" />
+                                    <rect x="252" y="110" width="20" height="35" fill="#ffd700" opacity="0.8" />
+                                </g>
+
+                                {/* Neck */}
+                                <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
+
+                                {/* Head / Helmet */}
+                                <circle cx="200" cy="146" r="16" fill="#ffedd5" />
+                                {/* Face elements */}
+                                <circle cx="194" cy="144" r="2" fill="#000" />
+                                <circle cx="206" cy="144" r="2" fill="#000" />
+                                <path d="M 193,151 Q 200,158 207,151" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" />
+
+                                {/* Helmet */}
+                                <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#1e3a8a" />
+                                <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#ffd700" />
+                            </g>
+
+                            {/* Sparkles / confetti shooting from hands */}
+                            <g className="confetti-group" style={{ transformOrigin: '200px 200px' }}>
+                                <circle cx="120" cy="150" r="4" fill="#ff0" />
+                                <circle cx="280" cy="150" r="4" fill="#0ff" />
+                                <circle cx="150" cy="100" r="3" fill="#f0f" />
+                                <circle cx="250" cy="100" r="3" fill="#ff0" />
+                                <circle cx="100" cy="220" r="5" fill="#39ff14" />
+                                <circle cx="300" cy="220" r="5" fill="#ff4444" />
+                            </g>
+                        </svg>
                     </div>
 
-                    <div style={{
-                        fontSize: 'clamp(3.5rem, 14vw, 12rem)', fontWeight: 900,
-                        color: '#ffd700', textShadow: '0 0 30px rgba(255,215,0,0.5)',
-                        transform: 'rotate(-3deg)',
-                        marginBottom: 'clamp(12px, 2vh, 32px)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'bounceIn 1.2s cubic-bezier(0.36,0,0.66,-0.56) both',
-                        textAlign: 'center', width: '100%',
-                    }}>
-                        SOLD!
-                    </div>
-
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: isSmall ? 'column' : 'row',
-                        alignItems: 'center',
-                        gap: isSmall ? '16px' : 'clamp(16px, 4vw, 60px)',
-                        textAlign: isSmall ? 'center' : 'left',
-                        background: 'rgba(255,255,255,0.05)',
-                        padding: isSmall ? '24px 16px' : 'clamp(16px, 4vh, 60px)',
-                        borderRadius: 'clamp(12px, 2vw, 30px)',
-                        border: '2px solid rgba(255,215,0,0.4)',
-                        boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'scaleUp 1s 0.3s both',
-                        maxWidth: '90%', width: '100%',
-                    }}>
-                        <div style={{ position: 'relative' }}>
-                            {/* Player Number Badge for SOLD Overlay */}
-                            {lastSoldPlayer?.player_number != null && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '-8px',
-                                    left: '-8px',
-                                    background: 'var(--accent-gold)',
-                                    color: '#000',
-                                    padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
-                                    borderRadius: '50px',
-                                    fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
-                                    fontWeight: 900,
-                                    zIndex: 10,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                                    border: '2px solid #fff',
-                                }}>
-                                    #{lastSoldPlayer.player_number}
-                                </div>
-                            )}
-                            {(lastSoldPlayer.players.photo_url && !soldImageError) ? (
-                            <img
-                                src={getOptimizedImageUrl(lastSoldPlayer.players.photo_url, 400)}
-                                alt="Sold"
-                                onError={() => setSoldImageError(true)}
-                                style={{
-                                    width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                    height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                    borderRadius: '50%',
-                                    border: 'clamp(4px, 1vw, 12px) solid #39ff14',
-                                    objectFit: 'cover',
-                                    boxShadow: '0 0 40px rgba(57,255,20,0.3)',
-                                    flexShrink: 0,
-                                }}
-                            />
-                        ) : (
-                            <div style={{
-                                width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                borderRadius: '50%',
-                                border: 'clamp(4px, 1vw, 12px) solid #39ff14',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(255,255,255,0.05))',
-                                color: 'rgba(57,255,20,0.3)',
-                                fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
-                                fontWeight: 900,
-                                boxShadow: '0 0 40px rgba(57,255,20,0.3)',
-                                flexShrink: 0,
-                            }}>
-                                {(lastSoldPlayer.players.first_name?.charAt(0) || '') + (lastSoldPlayer.players.last_name?.charAt(0) || '')}
-                            </div>
-                        )}
+                    {/* Details faded in after collision */}
+                    <div className="sold-details-container">
+                        <div style={{
+                            fontSize: 'clamp(1rem, 3.5vw, 3rem)', color: '#fff',
+                            textTransform: 'uppercase', letterSpacing: 'clamp(2px, 1vw, 12px)',
+                            marginBottom: 'clamp(4px, 1vh, 12px)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'slideUp 1s ease-out', textAlign: 'center',
+                        }}>
+                            Congratulations!
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 0.8vh, 12px)', minWidth: 0 }}>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.3rem, 4.5vw, 5rem)',
-                                fontWeight: 'bold', color: '#fff', wordBreak: 'break-word',
-                            }}>
-                                {lastSoldPlayer.players.first_name} {lastSoldPlayer.players.last_name}
-                            </div>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.4rem, 4vw, 4.5rem)',
-                                color: '#ffd700', fontWeight: 900,
-                            }}>
-                                ₹ {lastSoldPlayer.sold_price.toLocaleString()}
-                            </div>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1.2rem)' : 'clamp(0.9rem, 2vw, 2.2rem)',
-                                color: 'rgba(255,255,255,0.6)',
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                alignItems: 'center',
-                                gap: 'clamp(8px, 1.5vw, 20px)',
-                                marginBottom: 'clamp(8px, 1.5vh, 20px)'
-                            }}>
-                                <span style={{ opacity: 0.5 }}>Batting:</span>
-                                <span>{lastSoldPlayer.players.batting_style}</span>
-                                <span style={{ opacity: 0.3 }}>|</span>
-                                <span style={{ opacity: 0.5 }}>Bowling:</span>
-                                <span>{lastSoldPlayer.players.bowling_style}</span>
-                            </div>
-                            <div style={{
-                                display: 'flex', alignItems: 'center',
-                                justifyContent: isSmall ? 'center' : 'flex-start',
-                                gap: 'clamp(8px, 1.5vw, 24px)',
-                                flexWrap: 'wrap',
-                            }}>
-                                {soldTeam?.logo_url && (
-                                    <img src={soldTeam.logo_url} alt="Team" style={{
-                                        width: isSmall ? 'clamp(28px, 8vw, 50px)' : 'clamp(32px, 8vw, 100px)',
-                                        height: isSmall ? 'clamp(28px, 8vw, 50px)' : 'clamp(32px, 8vw, 100px)',
-                                        objectFit: 'contain',
-                                    }} />
+
+                        <div style={{
+                            fontSize: 'clamp(3.5rem, 14vw, 12rem)', fontWeight: 900,
+                            color: '#ffd700', textShadow: '0 0 30px rgba(255,215,0,0.5)',
+                            transform: 'rotate(-3deg)',
+                            marginBottom: 'clamp(12px, 2vh, 32px)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'bounceIn 1.2s cubic-bezier(0.36,0,0.66,-0.56) both',
+                            textAlign: 'center', width: '100%',
+                        }}>
+                            SOLD!
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: isSmall ? 'column' : 'row',
+                            alignItems: 'center',
+                            gap: isSmall ? '16px' : 'clamp(16px, 4vw, 60px)',
+                            textAlign: isSmall ? 'center' : 'left',
+                            background: 'rgba(255,255,255,0.05)',
+                            padding: isSmall ? '24px 16px' : 'clamp(16px, 4vh, 60px)',
+                            borderRadius: 'clamp(12px, 2vw, 30px)',
+                            border: '2px solid rgba(255,215,0,0.4)',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'scaleUp 1s 0.3s both',
+                            maxWidth: '90%', width: '100%',
+                        }}>
+                            <div style={{ position: 'relative' }}>
+                                {/* Player Number Badge for SOLD Overlay */}
+                                {lastSoldPlayer?.player_number != null && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '-8px',
+                                        left: '-8px',
+                                        background: 'var(--accent-gold)',
+                                        color: '#000',
+                                        padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
+                                        borderRadius: '50px',
+                                        fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
+                                        fontWeight: 900,
+                                        zIndex: 10,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                        border: '2px solid #fff',
+                                    }}>
+                                        #{lastSoldPlayer.player_number}
+                                    </div>
                                 )}
+                                {(lastSoldPlayer.players.photo_url && !soldImageError) ? (
+                                    <img
+                                        src={getOptimizedImageUrl(lastSoldPlayer.players.photo_url, 400)}
+                                        alt="Sold"
+                                        onError={() => setSoldImageError(true)}
+                                        style={{
+                                            width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                            height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                            borderRadius: '50%',
+                                            border: 'clamp(4px, 1vw, 12px) solid #39ff14',
+                                            objectFit: 'cover',
+                                            boxShadow: '0 0 40px rgba(57,255,20,0.3)',
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                        height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                        borderRadius: '50%',
+                                        border: 'clamp(4px, 1vw, 12px) solid #39ff14',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(255,255,255,0.05))',
+                                        color: 'rgba(57,255,20,0.3)',
+                                        fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
+                                        fontWeight: 900,
+                                        boxShadow: '0 0 40px rgba(57,255,20,0.3)',
+                                        flexShrink: 0,
+                                    }}>
+                                        {(lastSoldPlayer.players.first_name?.charAt(0) || '') + (lastSoldPlayer.players.last_name?.charAt(0) || '')}
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 0.8vh, 12px)', minWidth: 0 }}>
                                 <div style={{
-                                    fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.3rem, 4vw, 4.5rem)',
-                                    fontWeight: 900, color: '#39ff14', wordBreak: 'break-word',
+                                    fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.3rem, 4.5vw, 5rem)',
+                                    fontWeight: 'bold', color: '#fff', wordBreak: 'break-word',
                                 }}>
-                                    {soldTeam?.team_name}
+                                    {lastSoldPlayer.players.first_name} {lastSoldPlayer.players.last_name}
+                                </div>
+                                <div style={{
+                                    fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.4rem, 4vw, 4.5rem)',
+                                    color: '#ffd700', fontWeight: 900,
+                                }}>
+                                    ₹ {lastSoldPlayer.sold_price.toLocaleString()}
+                                </div>
+                                <div style={{
+                                    fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1.2rem)' : 'clamp(0.9rem, 2vw, 2.2rem)',
+                                    color: 'rgba(255,255,255,0.6)',
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    alignItems: 'center',
+                                    gap: 'clamp(8px, 1.5vw, 20px)',
+                                    marginBottom: 'clamp(8px, 1.5vh, 20px)'
+                                }}>
+                                    <span style={{ opacity: 0.5 }}>Batting:</span>
+                                    <span>{lastSoldPlayer.players.batting_style}</span>
+                                    <span style={{ opacity: 0.3 }}>|</span>
+                                    <span style={{ opacity: 0.5 }}>Bowling:</span>
+                                    <span>{lastSoldPlayer.players.bowling_style}</span>
+                                </div>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center',
+                                    justifyContent: isSmall ? 'center' : 'flex-start',
+                                    gap: 'clamp(8px, 1.5vw, 24px)',
+                                    flexWrap: 'wrap',
+                                }}>
+                                    {soldTeam?.logo_url && (
+                                        <img src={soldTeam.logo_url} alt="Team" style={{
+                                            width: isSmall ? 'clamp(28px, 8vw, 50px)' : 'clamp(32px, 8vw, 100px)',
+                                            height: isSmall ? 'clamp(28px, 8vw, 50px)' : 'clamp(32px, 8vw, 100px)',
+                                            objectFit: 'contain',
+                                        }} />
+                                    )}
+                                    <div style={{
+                                        fontSize: isSmall ? 'clamp(1.2rem, 5vw, 2rem)' : 'clamp(1.3rem, 4vw, 4.5rem)',
+                                        fontWeight: 900, color: '#39ff14', wordBreak: 'break-word',
+                                    }}>
+                                        {soldTeam?.team_name}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -640,122 +773,219 @@ const LiveAuctionProjectorPage = () => {
                     padding: 'clamp(16px, 3vw, 40px)',
                     boxSizing: 'border-box',
                 }}>
-                    <div style={{
-                        fontSize: 'clamp(1rem, 3.5vw, 3rem)', color: '#fff',
-                        textTransform: 'uppercase', letterSpacing: 'clamp(2px, 1vw, 12px)',
-                        marginBottom: 'clamp(4px, 1vh, 12px)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'slideUp 1s ease-out', textAlign: 'center',
-                    }}>
-                        Better Luck Next Time!
+                    {/* Wickets breaking cinematic animation */}
+                    <div className="cricket-anim-unsold-wrapper">
+                        <svg width="400" height="400" viewBox="0 0 400 400" style={{ position: 'absolute', zIndex: 5, pointerEvents: 'none' }}>
+                            <defs>
+                                <linearGradient id="stumpWood" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#cd853f" />
+                                    <stop offset="50%" stopColor="#8b5a2b" />
+                                    <stop offset="100%" stopColor="#5c3a21" />
+                                </linearGradient>
+                                <radialGradient id="redBallShade" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stopColor="#ff4d4d" />
+                                    <stop offset="70%" stopColor="#990000" />
+                                    <stop offset="100%" stopColor="#3d0000" />
+                                </radialGradient>
+                            </defs>
+
+                            {/* Shockwave */}
+                            <circle className="anim-unsold-shockwave" cx="200" cy="180" r="1" fill="none" stroke="#ff4444" strokeWidth="4" />
+
+                            {/* Wickets */}
+                            <g className="anim-stump-left" style={{ transformOrigin: '175px 260px' }}>
+                                <rect x="171" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
+                            </g>
+                            <g className="anim-stump-mid" style={{ transformOrigin: '200px 260px' }}>
+                                <rect x="196" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
+                            </g>
+                            <g className="anim-stump-right" style={{ transformOrigin: '225px 260px' }}>
+                                <rect x="221" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
+                            </g>
+                            <g className="anim-bail-left" style={{ transformOrigin: '185px 156px' }}>
+                                <rect x="170" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
+                            </g>
+                            <g className="anim-bail-right" style={{ transformOrigin: '215px 156px' }}>
+                                <rect x="202" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
+                            </g>
+
+                            {/* Cricket Ball */}
+                            <g className="anim-unsold-ball">
+                                <circle cx="0" cy="0" r="14" fill="url(#redBallShade)" />
+                                <path d="M -14,0 A 14,14 0 0,0 14,0" fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="2,2" />
+                            </g>
+
+                            {/* SAD CRYING CRICKETER CHARACTER walking away */}
+                            <g className="sad-cricketer-walk" style={{ transformOrigin: '200px 220px' }}>
+                                {/* Legs */}
+                                <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-left" style={{ transformOrigin: '188px 220px' }} />
+                                <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
+
+                                <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-right" style={{ transformOrigin: '212px 220px' }} />
+                                <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
+
+                                {/* Torso */}
+                                <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#64748b" stroke="#64748b" strokeWidth="2" />
+                                <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#334155" />
+                                <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">0</text>
+
+                                {/* Left Arm (Wiping tears) */}
+                                <path d="M 180,175 Q 165,155 180,148" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="180" cy="148" r="6" fill="#fff" />
+
+                                {/* Right Arm (Holding bat sadly downward) */}
+                                <path d="M 220,175 Q 235,210 240,220" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="240" cy="220" r="6" fill="#fff" />
+
+                                {/* Bat Drooped sadly */}
+                                <g style={{ transformOrigin: '240px 220px', transform: 'rotate(25deg)' }}>
+                                    {/* Handle */}
+                                    <rect x="237" y="190" width="6" height="30" rx="2" fill="url(#batGrip)" />
+                                    {/* Blade */}
+                                    <path d="M 232,220 L 248,220 L 252,295 C 252,299 248,302 240,302 C 232,302 228,299 228,295 Z" fill="url(#batWood)" />
+                                </g>
+
+                                {/* Neck */}
+                                <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
+
+                                {/* Head */}
+                                <circle cx="200" cy="146" r="16" fill="#ffedd5" />
+
+                                {/* Sad eyes & crying mouth */}
+                                <path d="M 192,143 Q 195,145 198,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
+                                <path d="M 202,143 Q 205,145 208,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
+                                <path d="M 193,154 Q 200,148 207,154" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" />
+
+                                {/* Crying Tears */}
+                                <path d="M 194,146 L 194,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
+                                <path d="M 206,146 L 206,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
+
+                                {/* Helmet */}
+                                <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#334155" />
+                                <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#94a3b8" />
+                            </g>
+                        </svg>
                     </div>
 
-                    <div style={{
-                        fontSize: 'clamp(3.5rem, 14vw, 12rem)', fontWeight: 900,
-                        color: '#ff4444', textShadow: '0 0 30px rgba(255,68,68,0.5)',
-                        transform: 'rotate(-3deg)',
-                        marginBottom: 'clamp(12px, 2vh, 32px)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'bounceIn 1.2s cubic-bezier(0.36,0,0.66,-0.56) both',
-                        textAlign: 'center', width: '100%',
-                    }}>
-                        UNSOLD
-                    </div>
-
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: isSmall ? 'column' : 'row',
-                        alignItems: 'center',
-                        gap: isSmall ? '16px' : 'clamp(16px, 4vw, 60px)',
-                        textAlign: isSmall ? 'center' : 'left',
-                        background: 'rgba(255,255,255,0.05)',
-                        padding: isSmall ? '30px 20px' : 'clamp(20px, 4vh, 70px)',
-                        borderRadius: 'clamp(12px, 2vw, 30px)',
-                        border: '2px solid rgba(255,68,68,0.4)',
-                        boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-                        position: 'relative', zIndex: 2,
-                        animation: 'scaleUp 1s 0.3s both',
-                        maxWidth: '85%', width: '100%',
-                    }}>
-                        <div style={{ position: 'relative' }}>
-                             {lastUnsoldPlayer?.player_number != null && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '-8px',
-                                    left: '-8px',
-                                    background: '#ff4444',
-                                    color: '#fff',
-                                    padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
-                                    borderRadius: '50px',
-                                    fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
-                                    fontWeight: 900,
-                                    zIndex: 10,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                                    border: '2px solid #fff',
-                                }}>
-                                    #{lastUnsoldPlayer.player_number}
-                                </div>
-                            )}
-                            {(lastUnsoldPlayer.players.photo_url && !unsoldImageError) ? (
-                            <img
-                                src={getOptimizedImageUrl(lastUnsoldPlayer.players.photo_url, 400)}
-                                alt="Unsold"
-                                onError={() => setUnsoldImageError(true)}
-                                style={{
-                                    width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                    height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                    borderRadius: '50%',
-                                    border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
-                                    objectFit: 'cover',
-                                    boxShadow: '0 0 40px rgba(148,163,184,0.2)',
-                                    flexShrink: 0,
-                                    filter: 'grayscale(0.5)'
-                                }}
-                            />
-                        ) : (
-                            <div style={{
-                                width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
-                                borderRadius: '50%',
-                                border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: 'linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,255,255,0.05))',
-                                color: 'rgba(255,68,68,0.3)',
-                                fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
-                                fontWeight: 900,
-                                boxShadow: '0 0 40px rgba(255,68,68,0.1)',
-                                flexShrink: 0,
-                            }}>
-                                {(lastUnsoldPlayer.players.first_name?.charAt(0) || '') + (lastUnsoldPlayer.players.last_name?.charAt(0) || '')}
-                            </div>
-                        )}
+                    {/* Details faded in after cinematic */}
+                    <div className="unsold-details-container">
+                        <div style={{
+                            fontSize: 'clamp(1rem, 3.5vw, 3rem)', color: '#fff',
+                            textTransform: 'uppercase', letterSpacing: 'clamp(2px, 1vw, 12px)',
+                            marginBottom: 'clamp(4px, 1vh, 12px)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'slideUp 1s ease-out', textAlign: 'center',
+                        }}>
+                            Better Luck Next Time!
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.2vh, 20px)', minWidth: 0 }}>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(1.5rem, 6vw, 2.5rem)' : 'clamp(1.5rem, 5vw, 6rem)',
-                                fontWeight: 'bold', color: '#fff', wordBreak: 'break-word',
-                            }}>
-                                {lastUnsoldPlayer.players.first_name} {lastUnsoldPlayer.players.last_name}
+
+                        <div style={{
+                            fontSize: 'clamp(3.5rem, 14vw, 12rem)', fontWeight: 900,
+                            color: '#ff4444', textShadow: '0 0 30px rgba(255,68,68,0.5)',
+                            transform: 'rotate(-3deg)',
+                            marginBottom: 'clamp(12px, 2vh, 32px)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'bounceIn 1.2s cubic-bezier(0.36,0,0.66,-0.56) both',
+                            textAlign: 'center', width: '100%',
+                        }}>
+                            UNSOLD
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: isSmall ? 'column' : 'row',
+                            alignItems: 'center',
+                            gap: isSmall ? '16px' : 'clamp(16px, 4vw, 60px)',
+                            textAlign: isSmall ? 'center' : 'left',
+                            background: 'rgba(255,255,255,0.05)',
+                            padding: isSmall ? '30px 20px' : 'clamp(20px, 4vh, 70px)',
+                            borderRadius: 'clamp(12px, 2vw, 30px)',
+                            border: '2px solid rgba(255,68,68,0.4)',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+                            position: 'relative', zIndex: 2,
+                            animation: 'scaleUp 1s 0.3s both',
+                            maxWidth: '85%', width: '100%',
+                        }}>
+                            <div style={{ position: 'relative' }}>
+                                {lastUnsoldPlayer?.player_number != null && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '-8px',
+                                        left: '-8px',
+                                        background: '#ff4444',
+                                        color: '#fff',
+                                        padding: 'clamp(3px, 0.6vh, 6px) clamp(8px, 1.2vw, 14px)',
+                                        borderRadius: '50px',
+                                        fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
+                                        fontWeight: 900,
+                                        zIndex: 10,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                        border: '2px solid #fff',
+                                    }}>
+                                        #{lastUnsoldPlayer.player_number}
+                                    </div>
+                                )}
+                                {(lastUnsoldPlayer.players.photo_url && !unsoldImageError) ? (
+                                    <img
+                                        src={getOptimizedImageUrl(lastUnsoldPlayer.players.photo_url, 400)}
+                                        alt="Unsold"
+                                        onError={() => setUnsoldImageError(true)}
+                                        style={{
+                                            width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                            height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                            borderRadius: '50%',
+                                            border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
+                                            objectFit: 'cover',
+                                            boxShadow: '0 0 40px rgba(148,163,184,0.2)',
+                                            flexShrink: 0,
+                                            filter: 'grayscale(0.5)'
+                                        }}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                        height: isSmall ? 'clamp(100px, 40vw, 180px)' : 'clamp(100px, 20vw, 400px)',
+                                        borderRadius: '50%',
+                                        border: 'clamp(4px, 1vw, 12px) solid #94a3b8',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,255,255,0.05))',
+                                        color: 'rgba(255,68,68,0.3)',
+                                        fontSize: isSmall ? 'clamp(2rem, 8vw, 4rem)' : 'clamp(4rem, 10vw, 10rem)',
+                                        fontWeight: 900,
+                                        boxShadow: '0 0 40px rgba(255,68,68,0.1)',
+                                        flexShrink: 0,
+                                    }}>
+                                        {(lastUnsoldPlayer.players.first_name?.charAt(0) || '') + (lastUnsoldPlayer.players.last_name?.charAt(0) || '')}
+                                    </div>
+                                )}
                             </div>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(0.9rem, 3.5vw, 1.3rem)' : 'clamp(1rem, 2.5vw, 3rem)',
-                                color: 'rgba(255,255,255,0.7)',
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                alignItems: 'center',
-                                gap: 'clamp(10px, 2vw, 30px)',
-                            }}>
-                                <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '4px' }}>{lastUnsoldPlayer.players.player_role}</span>
-                                <span style={{ opacity: 0.5 }}>|</span>
-                                <span style={{ color: '#ff4444' }}>BASE: ₹ {activeAuction?.base_price?.toLocaleString()}</span>
-                            </div>
-                            <div style={{
-                                fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1rem)' : 'clamp(0.9rem, 1.5vw, 2rem)',
-                                color: 'rgba(255,255,255,0.5)',
-                                fontStyle: 'italic',
-                                marginTop: '10px'
-                            }}>
-                                This player may come back for accelerated auction.
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.2vh, 20px)', minWidth: 0 }}>
+                                <div style={{
+                                    fontSize: isSmall ? 'clamp(1.5rem, 6vw, 2.5rem)' : 'clamp(1.5rem, 5vw, 6rem)',
+                                    fontWeight: 'bold', color: '#fff', wordBreak: 'break-word',
+                                }}>
+                                    {lastUnsoldPlayer.players.first_name} {lastUnsoldPlayer.players.last_name}
+                                </div>
+                                <div style={{
+                                    fontSize: isSmall ? 'clamp(0.9rem, 3.5vw, 1.3rem)' : 'clamp(1rem, 2.5vw, 3rem)',
+                                    color: 'rgba(255,255,255,0.7)',
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    alignItems: 'center',
+                                    gap: 'clamp(10px, 2vw, 30px)',
+                                }}>
+                                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '4px' }}>{lastUnsoldPlayer.players.player_role}</span>
+                                    <span style={{ opacity: 0.5 }}>|</span>
+                                    <span style={{ color: '#ff4444' }}>BASE: ₹ {activeAuction?.base_price?.toLocaleString()}</span>
+                                </div>
+                                <div style={{
+                                    fontSize: isSmall ? 'clamp(0.8rem, 3vw, 1rem)' : 'clamp(0.9rem, 1.5vw, 2rem)',
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontStyle: 'italic',
+                                    marginTop: '10px'
+                                }}>
+                                    This player may come back for accelerated auction.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -807,6 +1037,282 @@ const LiveAuctionProjectorPage = () => {
                 .fw-9  { top: 60%; left: 90%; background: #9400d3; animation: explode 2.5s infinite 0.1s; }
                 .fw-10 { top:  5%; left:  5%; background: #adff2f; animation: explode 2.9s infinite 1.1s; }
                 .fw-11 { top: 90%; left: 60%; background: #00ffff; animation: explode 2.4s infinite 0.6s; }
+
+                /* Cricket SOLD cinematic animations */
+                .cricket-anim-sold-wrapper {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 400px;
+                    height: 400px;
+                    z-index: 1005;
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIntroCinematic 2.0s ease-out both;
+                }
+
+                @keyframes fadeIntroCinematic {
+                    0% { opacity: 1; visibility: visible; }
+                    85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); visibility: hidden; }
+                }
+
+                /* Dancing player animations */
+                .dancing-player-body {
+                    animation: playerDance 0.8s ease-in-out infinite alternate;
+                }
+
+                @keyframes playerDance {
+                    0% { transform: translateY(10px) scale(0.98) rotate(-3deg); }
+                    100% { transform: translateY(-15px) scale(1.02) rotate(3deg); }
+                }
+
+                .celebrating-bat {
+                    animation: spinBat 0.6s linear infinite;
+                }
+
+                @keyframes spinBat {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
+                .dancing-leg-left {
+                    animation: legDanceLeft 0.8s ease-in-out infinite alternate;
+                }
+
+                @keyframes legDanceLeft {
+                    0% { transform: rotate(-10deg); }
+                    100% { transform: rotate(15deg); }
+                }
+
+                .dancing-leg-right {
+                    animation: legDanceRight 0.8s ease-in-out infinite alternate;
+                }
+
+                @keyframes legDanceRight {
+                    0% { transform: rotate(10deg); }
+                    100% { transform: rotate(-15deg); }
+                }
+
+                .confetti-group {
+                    animation: confettiExplode 2.0s ease-out infinite;
+                }
+
+                @keyframes confettiExplode {
+                    0% { transform: scale(0.5); opacity: 0; }
+                    50% { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(1.6); opacity: 0; }
+                }
+
+                .anim-bat-group {
+                    animation: batSwing 1.8s cubic-bezier(0.25, 1, 0.5, 1) both;
+                }
+
+                @keyframes batSwing {
+                    0% { transform: rotate(-85deg); }
+                    /* Contact point around 27% of 1.8s (approx 0.5s) */
+                    27% { transform: rotate(5deg); }
+                    40% { transform: rotate(15deg); }
+                    70% { transform: rotate(45deg); opacity: 1; }
+                    100% { transform: rotate(60deg); opacity: 0; }
+                }
+
+                .anim-ball-group {
+                    animation: ballFlightSold 1.8s cubic-bezier(0.25, 1, 0.5, 1) both;
+                }
+
+                @keyframes ballFlightSold {
+                    0% { transform: translate(-150px, 320px) scale(1.4); }
+                    /* Contact point at 0.5s */
+                    27% { transform: translate(200px, 200px) scale(1); }
+                    /* Flies high and away to top right */
+                    60% { transform: translate(450px, -150px) scale(0.5); }
+                    100% { transform: translate(600px, -300px) scale(0.2); opacity: 0; }
+                }
+
+                .anim-shockwave {
+                    animation: glowShockwave 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes glowShockwave {
+                    0%, 26% { transform: scale(0); opacity: 0; }
+                    27% { transform: scale(0); opacity: 1; stroke-width: 8px; }
+                    70% { transform: scale(6); opacity: 0; stroke-width: 1px; }
+                    100% { transform: scale(6); opacity: 0; }
+                }
+
+                .anim-sparks {
+                    animation: sparkBurst 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes sparkBurst {
+                    0%, 26% { transform: scale(0); opacity: 0; }
+                    27% { transform: scale(0.5); opacity: 1; }
+                    60% { transform: scale(1.8); opacity: 0; }
+                    100% { transform: scale(1.8); opacity: 0; }
+                }
+
+                /* Cricket UNSOLD cinematic animations */
+                .cricket-anim-unsold-wrapper {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 400px;
+                    height: 400px;
+                    z-index: 1005;
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIntroCinematic 2.0s ease-out both;
+                }
+
+                .anim-unsold-ball {
+                    animation: ballFlightUnsold 1.8s cubic-bezier(0.25, 1, 0.5, 1) both;
+                }
+
+                @keyframes ballFlightUnsold {
+                    0% { transform: translate(50px, -150px) scale(1.6); }
+                    /* Contact point at 0.5s */
+                    27% { transform: translate(200px, 175px) scale(1); }
+                    /* Deflects down and right */
+                    60% { transform: translate(260px, 280px) scale(0.8); }
+                    100% { transform: translate(300px, 350px) scale(0.6); opacity: 0; }
+                }
+
+                .anim-unsold-shockwave {
+                    animation: glowShockwaveUnsold 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes glowShockwaveUnsold {
+                    0%, 26% { transform: scale(0); opacity: 0; }
+                    27% { transform: scale(0); opacity: 1; stroke-width: 8px; }
+                    70% { transform: scale(5); opacity: 0; stroke-width: 1px; }
+                    100% { transform: scale(5); opacity: 0; }
+                }
+
+                .anim-stump-left {
+                    animation: stumpShatterLeft 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes stumpShatterLeft {
+                    0%, 27% { transform: rotate(0deg) translate(0, 0); }
+                    100% { transform: rotate(-55deg) translate(-100px, 20px); opacity: 0.8; }
+                }
+
+                .anim-stump-mid {
+                    animation: stumpShatterMid 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes stumpShatterMid {
+                    0%, 27% { transform: rotate(0deg) translate(0, 0); }
+                    100% { transform: rotate(15deg) translate(20px, 80px); opacity: 0.8; }
+                }
+
+                .anim-stump-right {
+                    animation: stumpShatterRight 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes stumpShatterRight {
+                    0%, 27% { transform: rotate(0deg) translate(0, 0); }
+                    100% { transform: rotate(65deg) translate(120px, 10px); opacity: 0.8; }
+                }
+
+                .anim-bail-left {
+                    animation: bailShatterLeft 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                @keyframes bailShatterLeft {
+                    0%, 27% { transform: rotate(0deg) translate(0, 0); }
+                    100% { transform: rotate(-280deg) translate(-120px, -180px); opacity: 0.5; }
+                }
+
+                .anim-bail-right {
+                    animation: bailShatterRight 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) both;
+                }
+
+                /* Sad player walking away animations */
+                .sad-cricketer-walk {
+                    animation: walkSadly 1.8s ease-in-out both, sadBob 0.6s ease-in-out infinite alternate;
+                }
+
+                @keyframes walkSadly {
+                    0%, 27% { transform: translate(110px, 10px) scale(0.85); opacity: 0; }
+                    28% { transform: translate(110px, 10px) scale(0.85); opacity: 1; }
+                    100% { transform: translate(-140px, 15px) scale(0.75); opacity: 0; }
+                }
+
+                @keyframes sadBob {
+                    0% { transform: translateY(0); }
+                    100% { transform: translateY(8px); }
+                }
+
+                .sad-leg-left {
+                    animation: sadLegLeft 0.3s ease-in-out infinite alternate;
+                }
+
+                @keyframes sadLegLeft {
+                    0% { transform: rotate(-15deg); }
+                    100% { transform: rotate(15deg); }
+                }
+
+                .sad-leg-right {
+                    animation: sadLegRight 0.3s ease-in-out infinite alternate;
+                }
+
+                @keyframes sadLegRight {
+                    0% { transform: rotate(15deg); }
+                    100% { transform: rotate(-15deg); }
+                }
+
+                .sad-tears {
+                    animation: dripTears 0.4s linear infinite;
+                }
+
+                @keyframes dripTears {
+                    0% { stroke-dashoffset: 0; opacity: 0.3; }
+                    50% { opacity: 1; }
+                    100% { stroke-dashoffset: 8; opacity: 0.2; }
+                }
+
+                @keyframes bailShatterRight {
+                    0%, 27% { transform: rotate(0deg) translate(0, 0); }
+                    100% { transform: rotate(320deg) translate(140px, -200px); opacity: 0.5; }
+                }
+
+                /* Fading in details container after cinematic */
+                .sold-details-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    animation: cardFadeInFromBelow 1.2s cubic-bezier(0.19, 1, 0.22, 1) both 1.8s;
+                }
+
+                .unsold-details-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    animation: cardFadeInFromBelow 1.2s cubic-bezier(0.19, 1, 0.22, 1) both 1.8s;
+                }
+
+                @keyframes cardFadeInFromBelow {
+                    from {
+                        opacity: 0;
+                        transform: translateY(40px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
             `}</style>
         </div>
     );
