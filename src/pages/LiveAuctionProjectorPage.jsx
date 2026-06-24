@@ -111,14 +111,33 @@ const LiveAuctionProjectorPage = () => {
                 table: 'auction_players' 
             }, payload => {
                 console.log('Realtime Player Event:', payload.eventType, payload.new?.auction_status);
-                const { new: updatedPlayer, eventType } = payload;
+                const { new: updatedPlayer, old: oldPlayer, eventType } = payload;
 
                 if (updatedPlayer.auction_status === 'sold') {
                     handleSoldEvent(updatedPlayer);
                 } else if (updatedPlayer.auction_status === 'unsold') {
                     handleUnsoldEvent(updatedPlayer);
+                } else if (
+                    eventType === 'UPDATE' &&
+                    updatedPlayer.auction_status === 'active' &&
+                    oldPlayer && oldPlayer.auction_status === 'active'
+                ) {
+                    // Update active player's bid details locally without fetching everything
+                    setActivePlayer(prev => {
+                        if (prev && prev.id === updatedPlayer.id) {
+                            return {
+                                ...prev,
+                                current_bid_price: updatedPlayer.current_bid_price,
+                                current_bid_team_id: updatedPlayer.current_bid_team_id,
+                                previous_bid_price: updatedPlayer.previous_bid_price,
+                                previous_bid_team_id: updatedPlayer.previous_bid_team_id
+                            };
+                        }
+                        fetchData(); // If ID doesn't match, reload to fetch joined player profile
+                        return prev;
+                    });
                 } else {
-                    // For bidding updates or new active player, refresh everything to ensure joined data is correct
+                    // For other updates (e.g. pending -> active), fetch fresh data
                     fetchData();
                 }
             })

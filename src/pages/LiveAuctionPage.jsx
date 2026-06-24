@@ -30,7 +30,45 @@ const LiveAuctionPage = () => {
         const subscription = supabase
             .channel('auction_updates')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, payload => {
-                fetchData(); // Simplest way to keep everything in sync
+                const { eventType, new: updatedPlayer, old: oldPlayer } = payload;
+                if (
+                    eventType === 'UPDATE' &&
+                    updatedPlayer &&
+                    updatedPlayer.auction_status === 'active' &&
+                    oldPlayer &&
+                    oldPlayer.auction_status === 'active'
+                ) {
+                    // Update active player's bid details locally without fetching all players
+                    setActivePlayer(prev => {
+                        if (prev && prev.id === updatedPlayer.id) {
+                            return {
+                                ...prev,
+                                current_bid_price: updatedPlayer.current_bid_price,
+                                current_bid_team_id: updatedPlayer.current_bid_team_id,
+                                previous_bid_price: updatedPlayer.previous_bid_price,
+                                previous_bid_team_id: updatedPlayer.previous_bid_team_id
+                            };
+                        }
+                        return prev;
+                    });
+                    // Also update in main players list
+                    setPlayers(prevPlayers => {
+                        return prevPlayers.map(p => {
+                            if (p.id === updatedPlayer.id) {
+                                return {
+                                    ...p,
+                                    current_bid_price: updatedPlayer.current_bid_price,
+                                    current_bid_team_id: updatedPlayer.current_bid_team_id,
+                                    previous_bid_price: updatedPlayer.previous_bid_price,
+                                    previous_bid_team_id: updatedPlayer.previous_bid_team_id
+                                };
+                            }
+                            return p;
+                        });
+                    });
+                } else {
+                    fetchData(); // Sync lists for other changes (status, team assignment, etc.)
+                }
             })
             .subscribe();
 
@@ -146,7 +184,27 @@ const LiveAuctionPage = () => {
                 .eq('id', activePlayer.id);
 
             if (error) throw error;
-            await fetchData();
+            
+            // Update activePlayer and players array locally for immediate reactivity
+            setActivePlayer(prev => ({
+                ...prev,
+                current_bid_price: nextBid,
+                current_bid_team_id: teamId,
+                previous_bid_price: prev.current_bid_price || 0,
+                previous_bid_team_id: prev.current_bid_team_id || null
+            }));
+            setPlayers(prevPlayers => prevPlayers.map(p => {
+                if (p.id === activePlayer.id) {
+                    return {
+                        ...p,
+                        current_bid_price: nextBid,
+                        current_bid_team_id: teamId,
+                        previous_bid_price: activePlayer.current_bid_price || 0,
+                        previous_bid_team_id: activePlayer.current_bid_team_id || null
+                    };
+                }
+                return p;
+            }));
         } catch (err) {
             alert("Failed to place bid");
         } finally {
@@ -171,7 +229,27 @@ const LiveAuctionPage = () => {
                 .eq('id', activePlayer.id);
 
             if (error) throw error;
-            await fetchData();
+            
+            // Update activePlayer and players array locally for immediate reactivity
+            setActivePlayer(prev => ({
+                ...prev,
+                current_bid_price: prev.previous_bid_price || 0,
+                current_bid_team_id: prev.previous_bid_team_id || null,
+                previous_bid_price: 0,
+                previous_bid_team_id: null
+            }));
+            setPlayers(prevPlayers => prevPlayers.map(p => {
+                if (p.id === activePlayer.id) {
+                    return {
+                        ...p,
+                        current_bid_price: activePlayer.previous_bid_price || 0,
+                        current_bid_team_id: activePlayer.previous_bid_team_id || null,
+                        previous_bid_price: 0,
+                        previous_bid_team_id: null
+                    };
+                }
+                return p;
+            }));
         } catch (err) {
             console.error(err);
             alert("Failed to undo bid.");

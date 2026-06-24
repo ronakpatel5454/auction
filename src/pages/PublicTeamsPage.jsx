@@ -70,8 +70,17 @@ const PublicTeamsPage = () => {
         
         const subscription = supabase
             .channel('projector_team_updates_v2')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, () => {
-                fetchData(activeAuction?.id);
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, payload => {
+                const { new: updatedPlayer, old: oldPlayer } = payload;
+                if (!updatedPlayer || !oldPlayer) {
+                    fetchData(activeAuction?.id); // Always refetch for inserts/deletes
+                    return;
+                }
+                const statusChanged = updatedPlayer.auction_status !== oldPlayer.auction_status;
+                const teamChanged = updatedPlayer.team_id !== oldPlayer.team_id;
+                if (statusChanged || teamChanged) {
+                    fetchData(activeAuction?.id);
+                }
             })
             .subscribe();
 

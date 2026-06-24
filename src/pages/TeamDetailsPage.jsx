@@ -22,7 +22,16 @@ const TeamDetailsPage = () => {
         const subscription = supabase
             .channel('team_updates_vertical')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, payload => {
-                fetchData();
+                const { new: updatedPlayer, old: oldPlayer } = payload;
+                if (!updatedPlayer || !oldPlayer) {
+                    fetchData(); // Always refetch for inserts/deletes
+                    return;
+                }
+                const statusChanged = updatedPlayer.auction_status !== oldPlayer.auction_status;
+                const teamChanged = updatedPlayer.team_id !== oldPlayer.team_id;
+                if (statusChanged || teamChanged) {
+                    fetchData();
+                }
             })
             .subscribe();
 
