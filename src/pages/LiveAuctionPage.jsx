@@ -20,6 +20,10 @@ const LiveAuctionPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
 
+    // Direct Custom Bidding States
+    const [customBid, setCustomBid] = useState('');
+    const [customBidTeam, setCustomBidTeam] = useState('');
+
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -208,6 +212,86 @@ const LiveAuctionPage = () => {
             }));
         } catch (err) {
             alert("Failed to place bid");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const placeCustomBid = async (e) => {
+        if (e) e.preventDefault();
+        if (!activePlayer || actionLoading) return;
+        if (!customBid || !customBidTeam) {
+            alert("Please enter a bid amount and select a team.");
+            return;
+        }
+
+        const bidAmount = parseInt(customBid, 10);
+        if (isNaN(bidAmount)) {
+            alert("Please enter a valid number for bid amount.");
+            return;
+        }
+
+        if (bidAmount < 0) {
+            alert("Bid amount must be a positive number.");
+            return;
+        }
+
+        // Check team budget
+        const teamId = customBidTeam;
+        const targetTeam = teams.find(t => String(t.id) === String(teamId));
+        if (!targetTeam) {
+            alert("Selected team was not found.");
+            return;
+        }
+
+        const teamPlayers = players.filter(p => String(p.team_id) === String(targetTeam.id));
+        const spent = teamPlayers.reduce((acc, p) => acc + (p.sold_price || 0), 0);
+
+        if (spent + bidAmount > activeAuction.max_budget) {
+            alert(`Insufficient budget! ${targetTeam.team_name} has only ${activeAuction.max_budget - spent} remaining.`);
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+            const { error } = await supabase
+                .from('auction_players')
+                .update({
+                    current_bid_price: bidAmount,
+                    current_bid_team_id: targetTeam.id,
+                    previous_bid_price: activePlayer.current_bid_price || 0,
+                    previous_bid_team_id: activePlayer.current_bid_team_id || null
+                })
+                .eq('id', activePlayer.id);
+
+            if (error) throw error;
+
+            // Update activePlayer and players array locally for immediate reactivity
+            setActivePlayer(prev => ({
+                ...prev,
+                current_bid_price: bidAmount,
+                current_bid_team_id: targetTeam.id,
+                previous_bid_price: prev.current_bid_price || 0,
+                previous_bid_team_id: prev.current_bid_team_id || null
+            }));
+            setPlayers(prevPlayers => prevPlayers.map(p => {
+                if (p.id === activePlayer.id) {
+                    return {
+                        ...p,
+                        current_bid_price: bidAmount,
+                        current_bid_team_id: targetTeam.id,
+                        previous_bid_price: activePlayer.current_bid_price || 0,
+                        previous_bid_team_id: activePlayer.current_bid_team_id || null
+                    };
+                }
+                return p;
+            }));
+
+            // Reset form
+            setCustomBid('');
+            setCustomBidTeam('');
+        } catch (err) {
+            alert("Failed to place custom bid");
         } finally {
             setActionLoading(false);
         }
@@ -519,13 +603,58 @@ const LiveAuctionPage = () => {
 
                                     {/* Bidding Controls */}
                                     <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+                                        {/* Custom Direct Bid Form */}
+                                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)', borderRadius: '10px', padding: '1.5rem', marginBottom: '2rem', textAlign: 'left' }}>
+                                            <h4 style={{ color: 'var(--accent-gold)', marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                ⚡ DIRECT CUSTOM BID
+                                            </h4>
+                                            <form onSubmit={placeCustomBid} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
+                                                <div style={{ flex: '1 1 200px' }}>
+                                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Bid Amount (₹)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="e.g. 50000" 
+                                                        value={customBid}
+                                                        onChange={e => setCustomBid(e.target.value)}
+                                                        className="form-input" 
+                                                        style={{ width: '100%', padding: '0.6rem' }}
+                                                        min="0"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div style={{ flex: '1 1 200px' }}>
+                                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Select Bidding Team</label>
+                                                    <select 
+                                                        value={customBidTeam}
+                                                        onChange={e => setCustomBidTeam(e.target.value)}
+                                                        className="form-select"
+                                                        style={{ width: '100%', padding: '0.6rem' }}
+                                                        required
+                                                    >
+                                                        <option value="">-- Choose Team --</option>
+                                                        {teams.map(team => (
+                                                            <option key={team.id} value={team.id}>{team.team_name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <button 
+                                                    type="submit" 
+                                                    disabled={actionLoading || !customBid || !customBidTeam}
+                                                    className="btn btn-primary"
+                                                    style={{ padding: '0.6rem 2rem', height: 'fit-content', background: 'var(--accent-gold)', color: '#000', fontWeight: 'bold' }}
+                                                >
+                                                    Apply Custom Bid
+                                                </button>
+                                            </form>
+                                        </div>
+
                                         <h4 style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>PLACE BID FOR:</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                                             {teams.map(team => (
                                                 <button
                                                     key={team.id}
                                                     onClick={() => placeBid(team.id)}
-                                                    disabled={actionLoading || team.id === activePlayer.current_bid_team_id}
+                                                    disabled={actionLoading}
                                                     className="btn btn-outline"
                                                     style={{
                                                         display: 'flex',
