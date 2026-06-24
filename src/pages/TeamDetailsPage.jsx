@@ -3,6 +3,7 @@ import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import { Link, Navigate } from 'react-router-dom';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const TeamDetailsPage = () => {
     const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
@@ -188,7 +189,7 @@ const TeamDetailsPage = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                             {icons.length === 0 ? <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No icon players assigned.</p> : icons.map(p => (
                                                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,215,0,0.05)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,215,0,0.1)' }}>
-                                                    <img src={p.players.photo_url || 'https://via.placeholder.com/50'} alt="Player" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)' }} />
+                                                    <img src={getOptimizedImageUrl(p.players.photo_url, 150) || 'https://via.placeholder.com/50'} alt="Player" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)' }} />
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{p.players.first_name} {p.players.last_name}</div>
                                                         <div style={{ fontSize: '0.8rem', color: 'var(--accent-gold)' }}>{p.players.player_role.toUpperCase()}</div>
@@ -207,7 +208,7 @@ const TeamDetailsPage = () => {
                                             {auctioned.length === 0 ? <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No auction players bought yet.</p> : auctioned.map(p => (
                                                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '0.8rem 1.2rem', borderRadius: '10px' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                        <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="Player" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                        <img src={getOptimizedImageUrl(p.players.photo_url, 150) || 'https://via.placeholder.com/40'} alt="Player" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                                         <div>
                                                             <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{p.players.first_name} {p.players.last_name}</div>
                                                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.players.player_role}</div>

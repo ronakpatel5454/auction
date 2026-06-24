@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Loader } from '../components/Loader';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const LiveAuctionProjectorPage = () => {
     const [loading, setLoading] = useState(true);
@@ -311,7 +312,7 @@ const LiveAuctionProjectorPage = () => {
                                 )}
                                 {(activePlayer?.players?.photo_url && !imageError) ? (
                                     <img
-                                        src={activePlayer.players.photo_url}
+                                        src={getOptimizedImageUrl(activePlayer.players.photo_url, 600)}
                                         alt="Player"
                                         onError={() => setImageError(true)}
                                         style={{
@@ -541,7 +542,7 @@ const LiveAuctionProjectorPage = () => {
                             )}
                             {(lastSoldPlayer.players.photo_url && !soldImageError) ? (
                             <img
-                                src={lastSoldPlayer.players.photo_url}
+                                src={getOptimizedImageUrl(lastSoldPlayer.players.photo_url, 400)}
                                 alt="Sold"
                                 onError={() => setSoldImageError(true)}
                                 style={{
@@ -697,7 +698,7 @@ const LiveAuctionProjectorPage = () => {
                             )}
                             {(lastUnsoldPlayer.players.photo_url && !unsoldImageError) ? (
                             <img
-                                src={lastUnsoldPlayer.players.photo_url}
+                                src={getOptimizedImageUrl(lastUnsoldPlayer.players.photo_url, 400)}
                                 alt="Unsold"
                                 onError={() => setUnsoldImageError(true)}
                                 style={{

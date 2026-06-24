@@ -3,6 +3,7 @@ import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import { Link, Navigate } from 'react-router-dom';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const LiveAuctionPage = () => {
     const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
@@ -490,7 +491,7 @@ const LiveAuctionPage = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3rem', marginBottom: '3rem' }}>
                                         <div style={{ position: 'relative' }}>
                                             <img
-                                                src={activePlayer.players.photo_url || 'https://via.placeholder.com/200'}
+                                                src={getOptimizedImageUrl(activePlayer.players.photo_url, 500) || 'https://via.placeholder.com/200'}
                                                 alt="Player"
                                                 style={{ width: 'auto', height: 220, objectFit: 'cover', borderRadius: '15px', border: '4px solid var(--accent-gold)', boxShadow: '0 0 30px rgba(255,215,0,0.3)' }}
                                             />
@@ -614,7 +615,7 @@ const LiveAuctionPage = () => {
                                 ) : (
                                     pendingPlayers.map(p => (
                                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px' }}>
-                                            <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                            <img src={getOptimizedImageUrl(p.players.photo_url, 100) || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
                                                     {p.player_number && <span style={{ color: 'var(--accent-gold)', marginRight: '0.5rem' }}>#{p.player_number}</span>}
@@ -662,7 +663,7 @@ const LiveAuctionPage = () => {
                                                 <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
                                                     <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>#{p.player_number || '-'}</td>
                                                     <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                        <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                        <img src={getOptimizedImageUrl(p.players.photo_url, 100) || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                                         <div>{p.players.first_name} {p.players.last_name}</div>
                                                     </td>
                                                     <td style={{ padding: '1rem' }}>{p.players.player_role}</td>
@@ -728,7 +729,7 @@ const LiveAuctionPage = () => {
                                             <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
                                                 <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>#{p.player_number || '-'}</td>
                                                 <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <img src={p.players.photo_url || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <img src={getOptimizedImageUrl(p.players.photo_url, 100) || 'https://via.placeholder.com/40'} alt="P" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                                                     <div>{p.players.first_name} {p.players.last_name}</div>
                                                 </td>
                                                 <td style={{ padding: '1rem' }}>{p.players.player_role}</td>

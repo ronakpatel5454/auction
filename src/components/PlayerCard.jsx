@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const PlayerCard = ({ player, viewMode = 'grid' }) => {
   const location = useLocation();
@@ -14,7 +15,7 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
           </div>
         )}
         <img 
-          src={player.photo_url || fallbackAvatar} 
+          src={getOptimizedImageUrl(player.photo_url, 150) || fallbackAvatar} 
           alt={player.first_name} 
           onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
           style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)', backgroundColor: '#0f172a' }}
@@ -55,7 +56,7 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
       {/* Image Section */}
       <div style={{ position: 'relative', width: '100%', paddingTop: '100%', backgroundColor: '#0f172a' }}>
         <img 
-          src={player.photo_url || fallbackAvatar} 
+          src={getOptimizedImageUrl(player.photo_url, 300) || fallbackAvatar} 
           alt={`${player.first_name} ${player.last_name}`} 
           onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}

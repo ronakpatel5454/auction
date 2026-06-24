@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const PlayerProfilePage = () => {
   const { id } = useParams();
@@ -100,7 +101,7 @@ const PlayerProfilePage = () => {
           }}>
             {player.photo_url ? (
               <img
-                src={player.photo_url}
+                src={getOptimizedImageUrl(player.photo_url, 500)}
                 alt={player.first_name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
               />

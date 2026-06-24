@@ -71,3 +71,23 @@ export const deleteFromCloudinary = async (fileUrl) => {
     console.error("Cloudinary delete error:", error);
   }
 };
+
+// Returns optimized version of Cloudinary URL using on-the-fly transformations
+export const getOptimizedImageUrl = (url, width = 600) => {
+  if (!url) return url;
+  if (!url.includes('res.cloudinary.com')) return url; // Not a Cloudinary URL
+  
+  const uploadMarker = '/upload/';
+  const index = url.indexOf(uploadMarker);
+  if (index === -1) return url;
+  
+  const before = url.substring(0, index + uploadMarker.length);
+  const after = url.substring(index + uploadMarker.length);
+  
+  // Check if it already has transformations (e.g. starts with q_auto)
+  if (after.startsWith('q_auto') || after.startsWith('c_')) {
+    return url;
+  }
+  
+  return `${before}q_auto,f_auto,w_${width}/${after}`;
+};

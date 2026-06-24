@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
 import { Link } from 'react-router-dom';
+import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const PublicTeamsPage = () => {
     const [loading, setLoading] = useState(true);
@@ -294,7 +295,7 @@ const PublicTeamsPage = () => {
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
                                                 {icons.length === 0 ? <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>No icon players assigned.</p> : icons.map(p => (
                                                     <Link key={p.id} to={`/player/${p.players.id}`} state={{ from: '/teams' }} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,215,0,0.08)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,215,0,0.15)', textDecoration: 'none' }}>
-                                                        <img src={p.players.photo_url || 'https://via.placeholder.com/60'} alt="X" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)' }} />
+                                                        <img src={getOptimizedImageUrl(p.players.photo_url, 150) || 'https://via.placeholder.com/60'} alt="X" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)' }} />
                                                         <div>
                                                             <div style={{ fontWeight: '800', fontSize: '1rem', color: '#fff', textTransform: 'uppercase' }}>{p.players.first_name} {p.players.last_name}</div>
                                                             <div style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{p.players.player_role.toUpperCase()}</div>
@@ -340,7 +341,7 @@ const PublicTeamsPage = () => {
                                                         onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                                                     >
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                            <img src={p.players.photo_url || 'https://via.placeholder.com/45'} alt="P" style={{ width: 45, height: 45, borderRadius: '50%', objectFit: 'cover' }} />
+                                                            <img src={getOptimizedImageUrl(p.players.photo_url, 150) || 'https://via.placeholder.com/45'} alt="P" style={{ width: 45, height: 45, borderRadius: '50%', objectFit: 'cover' }} />
                                                             <div>
                                                                 <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#fff' }}>{p.players.first_name} {p.players.last_name}</div>
                                                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{p.players.player_role}</div>

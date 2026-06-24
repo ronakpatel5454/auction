@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
-import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary, getOptimizedImageUrl } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
@@ -593,7 +593,7 @@ const AdminPlayersPage = () => {
                           {p.player_number != null ? `#${p.player_number}` : '-'}
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <img src={p.photo_url || 'https://via.placeholder.com/50'} alt="Player" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '4px' }} />
+                          <img src={getOptimizedImageUrl(p.photo_url, 100) || 'https://via.placeholder.com/50'} alt="Player" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '4px' }} />
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <div style={{ fontWeight: 'bold' }}>{p.first_name} {p.last_name}</div>
