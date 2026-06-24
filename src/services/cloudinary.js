@@ -17,7 +17,9 @@ export const uploadToCloudinary = async (file) => {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upload image to Cloudinary.");
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Cloudinary upload response not OK:", errorData);
+    throw new Error(errorData.error?.message || "Failed to upload image to Cloudinary.");
   }
 
   const data = await response.json();
