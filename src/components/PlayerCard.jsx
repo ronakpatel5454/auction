@@ -14,22 +14,35 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
             #{player.player_number}
           </div>
         )}
-        <img 
-          src={getOptimizedImageUrl(player.photo_url, 150) || fallbackAvatar} 
-          alt={player.first_name} 
+        <img
+          src={getOptimizedImageUrl(player.photo_url, 150) || fallbackAvatar}
+          alt={player.first_name}
           onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
           style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-gold)', backgroundColor: '#0f172a' }}
         />
-        
+
         <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>{player.first_name} {player.last_name}</h3>
-            <span style={{ display: 'inline-block', backgroundColor: 'var(--accent-green)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.25rem' }}>
-              {player.player_role?.toUpperCase() || 'PLAYER'}
-            </span>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-block', backgroundColor: 'var(--accent-green)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                {player.player_role?.toUpperCase() || 'PLAYER'}
+              </span>
+              {player.is_icon && (
+                <span style={{ display: 'inline-block', backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  ICON
+                </span>
+              )}
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', gap: '2rem', textAlign: 'center' }}>
+
+          <div style={{ display: 'flex', gap: '2rem', textAlign: 'center', alignItems: 'center' }}>
+            {player.sold_price > 0 && (
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', textTransform: 'uppercase', fontWeight: 'bold' }}>Sold Price</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>₹{player.sold_price?.toLocaleString()}</div>
+              </div>
+            )}
             <div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Batting</div>
               <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{player.batting_style || 'N/A'}</div>
@@ -53,17 +66,24 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
         </div>
       )}
 
+      {/* ICON Badge */}
+      {player.is_icon && (
+        <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--accent-gold)', color: '#000', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', zIndex: 10, letterSpacing: '0.05em' }}>
+          ICON
+        </div>
+      )}
+
       {/* Image Section */}
       <div style={{ position: 'relative', width: '100%', paddingTop: '100%', backgroundColor: '#0f172a' }}>
-        <img 
-          src={getOptimizedImageUrl(player.photo_url, 300) || fallbackAvatar} 
-          alt={`${player.first_name} ${player.last_name}`} 
+        <img
+          src={getOptimizedImageUrl(player.photo_url, 300) || fallbackAvatar}
+          alt={`${player.first_name} ${player.last_name}`}
           onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
         />
         {/* Gradient Overlay for text */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '50%', background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}></div>
-        
+
         {/* Name on image */}
         <div style={{ position: 'absolute', bottom: '10px', left: '15px', right: '15px' }}>
           <h3 style={{ fontSize: '1.4rem', color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.8)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -76,17 +96,26 @@ const PlayerCard = ({ player, viewMode = 'grid' }) => {
       </div>
 
       {/* Details Section */}
-      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
-          <span className="text-muted">Batting</span>
-          <span style={{ fontWeight: 500 }}>{player.batting_style || 'N/A'}</span>
+      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+            <span className="text-muted">Batting</span>
+            <span style={{ fontWeight: 500 }}>{player.batting_style || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+            <span className="text-muted">Bowling</span>
+            <span style={{ fontWeight: 500 }}>{player.bowling_style || 'N/A'}</span>
+          </div>
         </div>
-        <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
-          <span className="text-muted">Bowling</span>
-          <span style={{ fontWeight: 500 }}>{player.bowling_style || 'N/A'}</span>
-        </div>
+
+        {player.sold_price > 0 && (
+          <div className="flex justify-between" style={{ fontSize: '0.9rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+            <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>Sold Price</span>
+            <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>₹{player.sold_price?.toLocaleString()}</span>
+          </div>
+        )}
       </div>
-      
+
       <style>{`
         .render-card {
           transition: transform 0.3s ease, box-shadow 0.3s ease;

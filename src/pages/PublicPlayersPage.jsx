@@ -44,7 +44,7 @@ const PublicPlayersPage = () => {
                 if (auctionData) {
                     const { data: apData, error: apError } = await supabase
                         .from('auction_players')
-                        .select('player_id, player_number, approval_status')
+                        .select('player_id, player_number, approval_status, is_icon, sold_price, auction_status')
                         .eq('auction_id', auctionData.id)
                         .neq('approval_status', 'rejected'); 
 
@@ -60,12 +60,22 @@ const PublicPlayersPage = () => {
 
                         if (pError) throw pError;
 
-                        const numberMap = {};
-                        apData.forEach(ap => { numberMap[ap.player_id] = ap.player_number; });
+                        const apMap = {};
+                        apData.forEach(ap => {
+                            apMap[ap.player_id] = {
+                                player_number: ap.player_number,
+                                is_icon: ap.is_icon,
+                                sold_price: ap.sold_price,
+                                auction_status: ap.auction_status
+                            };
+                        });
 
                         const mergedPlayers = (pData || []).map(p => ({
                             ...p,
-                            player_number: numberMap[p.id] ?? null
+                            player_number: apMap[p.id]?.player_number ?? null,
+                            is_icon: apMap[p.id]?.is_icon ?? false,
+                            sold_price: apMap[p.id]?.sold_price ?? 0,
+                            auction_status: apMap[p.id]?.auction_status ?? null
                         })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
 
                         setPlayers(mergedPlayers);

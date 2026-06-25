@@ -71,10 +71,10 @@ const PlayersPage = () => {
         setActiveAuction(auctionData);
 
         if (auctionData) {
-          // 1. Fetch approved auction_players mapping (with player_number)
+          // 1. Fetch approved auction_players mapping (with player_number, is_icon, sold_price, auction_status)
           const { data: apData, error: apError } = await supabase
             .from('auction_players')
-            .select('player_id, player_number')
+            .select('player_id, player_number, is_icon, sold_price, auction_status')
             .eq('auction_id', auctionData.id)
             .eq('approval_status', 'approved');
 
@@ -93,12 +93,23 @@ const PlayersPage = () => {
 
             if (pError) throw pError;
 
-            // 3. Merge player_number into each player, then sort by it
-            const numberMap = {};
-            apData.forEach(ap => { numberMap[ap.player_id] = ap.player_number; });
+            // 3. Merge player details into each player, then sort by player_number
+            const apMap = {};
+            apData.forEach(ap => {
+              apMap[ap.player_id] = {
+                player_number: ap.player_number,
+                is_icon: ap.is_icon,
+                sold_price: ap.sold_price,
+                auction_status: ap.auction_status
+              };
+            });
+
             extractedPlayers = (pData || []).map(p => ({
               ...p,
-              player_number: numberMap[p.id] ?? null
+              player_number: apMap[p.id]?.player_number ?? null,
+              is_icon: apMap[p.id]?.is_icon ?? false,
+              sold_price: apMap[p.id]?.sold_price ?? 0,
+              auction_status: apMap[p.id]?.auction_status ?? null
             })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
           }
           setPlayers(extractedPlayers);
