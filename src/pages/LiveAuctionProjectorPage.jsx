@@ -525,6 +525,64 @@ const LiveAuctionProjectorPage = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {activePlayer?.current_bid_price >= 20000 && (
+                                <div style={{
+                                    marginTop: 'clamp(12px, 2vh, 24px)',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: '2px solid rgba(255, 215, 0, 0.4)',
+                                    padding: 'clamp(10px, 2vh, 20px)',
+                                    borderRadius: 'clamp(12px, 2vw, 20px)',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                    display: 'flex',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 'clamp(10px, 2vw, 20px)',
+                                    animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both, goldGlowPulse 2s infinite ease-in-out',
+                                    backdropFilter: 'blur(10px)',
+                                }}>
+                                    <div style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                    }}>
+                                        <div style={{
+                                            fontSize: isMobile ? 'clamp(0.9rem, 3.5vw, 1.3rem)' : 'clamp(1.1rem, 2vw, 1.8rem)',
+                                            fontWeight: 900,
+                                            color: '#ffd700',
+                                            textShadow: '0 0 12px rgba(255,215,0,0.5)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '1px',
+                                            marginBottom: '4px',
+                                        }}>
+                                            Sab Changa Si!
+                                        </div>
+                                        <div style={{
+                                            fontSize: isMobile ? 'clamp(0.7rem, 2.5vw, 0.95rem)' : 'clamp(0.8rem, 1.2vw, 1.1rem)',
+                                            color: 'rgba(255, 255, 255, 0.85)',
+                                            lineHeight: 1.4,
+                                        }}>
+                                            The current bid is <span style={{ color: '#ffd700', fontWeight: 'bold' }}>₹{activePlayer.current_bid_price.toLocaleString()}</span>! 🔥
+                                        </div>
+                                    </div>
+                                    <div style={{ flexShrink: 0 }}>
+                                        <img
+                                            src="https://media1.tenor.com/m/rcUlT6pAH9MAAAAd/jethalal-sab-changa-c.gif"
+                                            alt="Jethalal Sab Changa C"
+                                            style={{
+                                                width: isMobile ? 'clamp(80px, 15vw, 120px)' : 'clamp(120px, 16vh, 160px)',
+                                                height: isMobile ? 'clamp(80px, 15vw, 120px)' : 'clamp(120px, 16vh, 160px)',
+                                                borderRadius: '12px',
+                                                border: '2px solid #ffd700',
+                                                boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+                                                objectFit: 'cover',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -585,70 +643,86 @@ const LiveAuctionProjectorPage = () => {
                             zIndex: 2,
                             animation: 'scaleUp 1s 0.3s both',
                         }}>
-                            {/* Rotating bat & dancing player animation */}
-                            <div className="cricket-anim-sold-static-container" style={{
-                                width: 'clamp(150px, 22vh, 260px)',
-                                height: 'clamp(150px, 22vh, 260px)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                            }}>
-                                <svg width="100%" height="100%" viewBox="0 0 400 400" style={{ pointerEvents: 'none' }}>
-                                    <defs>
-                                        <linearGradient id="batWood" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <stop offset="0%" stopColor="#d97706" />
-                                            <stop offset="50%" stopColor="#b45309" />
-                                            <stop offset="100%" stopColor="#78350f" />
-                                        </linearGradient>
-                                        <linearGradient id="batGrip" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <stop offset="0%" stopColor="#ffd700" />
-                                            <stop offset="100%" stopColor="#b45309" />
-                                        </linearGradient>
-                                        <radialGradient id="ballShade" cx="30%" cy="30%" r="70%">
-                                            <stop offset="0%" stopColor="#ff6b6b" />
-                                            <stop offset="70%" stopColor="#b91c1c" />
-                                            <stop offset="100%" stopColor="#450a0a" />
-                                        </radialGradient>
-                                    </defs>
-                                    <circle className="anim-shockwave" cx="200" cy="200" r="1" fill="none" stroke="#ffd700" strokeWidth="4" />
-                                    <g className="anim-sparks" style={{ transformOrigin: '200px 200px' }}>
-                                        <path d="M200,160 L200,130 M200,240 L200,270 M160,200 L130,200 M240,200 L270,200 M170,170 L150,150 M230,230 L250,250 M170,230 L150,250 M230,170 L250,150" stroke="#ffd700" strokeWidth="6" strokeLinecap="round" />
-                                    </g>
-                                    <g className="dancing-player-body" style={{ transformOrigin: '200px 220px' }}>
-                                        <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-left" style={{ transformOrigin: '188px 220px' }} />
-                                        <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
-                                        <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-right" style={{ transformOrigin: '212px 220px' }} />
-                                        <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
-                                        <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#ffd700" stroke="#ffd700" strokeWidth="2" />
-                                        <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#1e3a8a" />
-                                        <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">7</text>
-                                        <path d="M 180,175 Q 150,160 140,185" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
-                                        <circle cx="138" cy="188" r="6" fill="#fff" />
-                                        <path d="M 220,175 Q 250,175 260,195" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
-                                        <circle cx="262" cy="198" r="6" fill="#fff" />
-                                        <g className="celebrating-bat" style={{ transformOrigin: '262px 198px' }}>
-                                            <rect x="259" y="168" width="6" height="30" rx="2" fill="url(#batGrip)" />
-                                            <path d="M 254,88 L 270,88 L 274,168 C 274,172 270,175 262,175 C 254,175 250,172 250,168 Z" fill="url(#batWood)" />
-                                            <rect x="252" y="110" width="20" height="35" fill="#ffd700" opacity="0.8" />
+                            {/* Rotating bat & dancing player animation & Tenor GIF */}
+                            <div style={{ display: 'flex', flexDirection: isSmall ? 'column' : 'row', alignItems: 'center', gap: 'clamp(15px, 2.5vw, 30px)', flexShrink: 0 }}>
+                                <div className="cricket-anim-sold-static-container" style={{
+                                    width: 'clamp(180px, 25vh, 300px)',
+                                    height: 'clamp(180px, 25vh, 300px)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
+                                    <svg width="100%" height="100%" viewBox="0 0 400 400" style={{ pointerEvents: 'none' }}>
+                                        <defs>
+                                            <linearGradient id="batWood" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stopColor="#d97706" />
+                                                <stop offset="50%" stopColor="#b45309" />
+                                                <stop offset="100%" stopColor="#78350f" />
+                                            </linearGradient>
+                                            <linearGradient id="batGrip" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stopColor="#ffd700" />
+                                                <stop offset="100%" stopColor="#b45309" />
+                                            </linearGradient>
+                                            <radialGradient id="ballShade" cx="30%" cy="30%" r="70%">
+                                                <stop offset="0%" stopColor="#ff6b6b" />
+                                                <stop offset="70%" stopColor="#b91c1c" />
+                                                <stop offset="100%" stopColor="#450a0a" />
+                                            </radialGradient>
+                                        </defs>
+                                        <circle className="anim-shockwave" cx="200" cy="200" r="1" fill="none" stroke="#ffd700" strokeWidth="4" />
+                                        <g className="anim-sparks" style={{ transformOrigin: '200px 200px' }}>
+                                            <path d="M200,160 L200,130 M200,240 L200,270 M160,200 L130,200 M240,200 L270,200 M170,170 L150,150 M230,230 L250,250 M170,230 L150,250 M230,170 L250,150" stroke="#ffd700" strokeWidth="6" strokeLinecap="round" />
                                         </g>
-                                        <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
-                                        <circle cx="200" cy="146" r="16" fill="#ffedd5" />
-                                        <circle cx="194" cy="144" r="2" fill="#000" />
-                                        <circle cx="206" cy="144" r="2" fill="#000" />
-                                        <path d="M 193,151 Q 200,158 207,151" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" />
-                                        <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#1e3a8a" />
-                                        <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#ffd700" />
-                                    </g>
-                                    <g className="confetti-group" style={{ transformOrigin: '200px 200px' }}>
-                                        <circle cx="120" cy="150" r="4" fill="#ff0" />
-                                        <circle cx="280" cy="150" r="4" fill="#0ff" />
-                                        <circle cx="150" cy="100" r="3" fill="#f0f" />
-                                        <circle cx="250" cy="100" r="3" fill="#ff0" />
-                                        <circle cx="100" cy="220" r="5" fill="#39ff14" />
-                                        <circle cx="300" cy="220" r="5" fill="#ff4444" />
-                                    </g>
-                                </svg>
+                                        <g className="dancing-player-body" style={{ transformOrigin: '200px 220px' }}>
+                                            <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-left" style={{ transformOrigin: '188px 220px' }} />
+                                            <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
+                                            <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#1e3a8a" strokeWidth="10" strokeLinecap="round" className="dancing-leg-right" style={{ transformOrigin: '212px 220px' }} />
+                                            <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
+                                            <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#ffd700" stroke="#ffd700" strokeWidth="2" />
+                                            <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#1e3a8a" />
+                                            <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">7</text>
+                                            <path d="M 180,175 Q 150,160 140,185" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
+                                            <circle cx="138" cy="188" r="6" fill="#fff" />
+                                            <path d="M 220,175 Q 250,175 260,195" fill="none" stroke="#ffd700" strokeWidth="8" strokeLinecap="round" />
+                                            <circle cx="262" cy="198" r="6" fill="#fff" />
+                                            <g className="celebrating-bat" style={{ transformOrigin: '262px 198px' }}>
+                                                <rect x="259" y="168" width="6" height="30" rx="2" fill="url(#batGrip)" />
+                                                <path d="M 254,88 L 270,88 L 274,168 C 274,172 270,175 262,175 C 254,175 250,172 250,168 Z" fill="url(#batWood)" />
+                                                <rect x="252" y="110" width="20" height="35" fill="#ffd700" opacity="0.8" />
+                                            </g>
+                                            <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
+                                            <circle cx="200" cy="146" r="16" fill="#ffedd5" />
+                                            <circle cx="194" cy="144" r="2" fill="#000" />
+                                            <circle cx="206" cy="144" r="2" fill="#000" />
+                                            <path d="M 193,151 Q 200,158 207,151" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" />
+                                            <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#1e3a8a" />
+                                            <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#ffd700" />
+                                        </g>
+                                        <g className="confetti-group" style={{ transformOrigin: '200px 200px' }}>
+                                            <circle cx="120" cy="150" r="4" fill="#ff0" />
+                                            <circle cx="280" cy="150" r="4" fill="#0ff" />
+                                            <circle cx="150" cy="100" r="3" fill="#f0f" />
+                                            <circle cx="250" cy="100" r="3" fill="#ff0" />
+                                            <circle cx="100" cy="220" r="5" fill="#39ff14" />
+                                            <circle cx="300" cy="220" r="5" fill="#ff4444" />
+                                        </g>
+                                    </svg>
+                                </div>
+                                <img
+                                    src="https://media1.tenor.com/m/Q9woRkqECoQAAAAd/strong.gif"
+                                    alt="Strong Celebration"
+                                    style={{
+                                        width: 'clamp(220px, 30vh, 380px)',
+                                        height: 'auto',
+                                        aspectRatio: '1.40351',
+                                        borderRadius: '16px',
+                                        border: '4px solid var(--accent-gold)',
+                                        boxShadow: '0 0 30px rgba(255,215,0,0.4)',
+                                        objectFit: 'cover',
+                                        flexShrink: 0
+                                    }}
+                                />
                             </div>
 
                             {/* Details Card */}
@@ -821,75 +895,91 @@ const LiveAuctionProjectorPage = () => {
                             zIndex: 2,
                             animation: 'scaleUp 1s 0.3s both',
                         }}>
-                            {/* Wickets & sad walking cricketer SVG */}
-                            <div className="cricket-anim-unsold-static-container" style={{
-                                width: 'clamp(150px, 22vh, 260px)',
-                                height: 'clamp(150px, 22vh, 260px)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                            }}>
-                                <svg width="100%" height="100%" viewBox="0 0 400 400" style={{ pointerEvents: 'none' }}>
-                                    <defs>
-                                        <linearGradient id="stumpWood" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <stop offset="0%" stopColor="#cd853f" />
-                                            <stop offset="50%" stopColor="#8b5a2b" />
-                                            <stop offset="100%" stopColor="#5c3a21" />
-                                        </linearGradient>
-                                        <radialGradient id="redBallShade" cx="30%" cy="30%" r="70%">
-                                            <stop offset="0%" stopColor="#ff4d4d" />
-                                            <stop offset="70%" stopColor="#990000" />
-                                            <stop offset="100%" stopColor="#3d0000" />
-                                        </radialGradient>
-                                    </defs>
-                                    <circle className="anim-unsold-shockwave" cx="200" cy="180" r="1" fill="none" stroke="#ff4444" strokeWidth="4" />
-                                    <g className="anim-stump-left" style={{ transformOrigin: '175px 260px' }}>
-                                        <rect x="171" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
-                                    </g>
-                                    <g className="anim-stump-mid" style={{ transformOrigin: '200px 260px' }}>
-                                        <rect x="196" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
-                                    </g>
-                                    <g className="anim-stump-right" style={{ transformOrigin: '225px 260px' }}>
-                                        <rect x="221" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
-                                    </g>
-                                    <g className="anim-bail-left" style={{ transformOrigin: '185px 156px' }}>
-                                        <rect x="170" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
-                                    </g>
-                                    <g className="anim-bail-right" style={{ transformOrigin: '215px 156px' }}>
-                                        <rect x="202" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
-                                    </g>
-                                    <g className="anim-unsold-ball">
-                                        <circle cx="0" cy="0" r="14" fill="url(#redBallShade)" />
-                                        <path d="M -14,0 A 14,14 0 0,0 14,0" fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="2,2" />
-                                    </g>
-                                    <g className="sad-cricketer-walk" style={{ transformOrigin: '200px 220px' }}>
-                                        <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-left" style={{ transformOrigin: '188px 220px' }} />
-                                        <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
-                                        <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-right" style={{ transformOrigin: '212px 220px' }} />
-                                        <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
-                                        <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#64748b" stroke="#64748b" strokeWidth="2" />
-                                        <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#334155" />
-                                        <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">0</text>
-                                        <path d="M 180,175 Q 165,155 180,148" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
-                                        <circle cx="180" cy="148" r="6" fill="#fff" />
-                                        <path d="M 220,175 Q 235,210 240,220" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
-                                        <circle cx="240" cy="220" r="6" fill="#fff" />
-                                        <g style={{ transformOrigin: '240px 220px', transform: 'rotate(25deg)' }}>
-                                            <rect x="237" y="190" width="6" height="30" rx="2" fill="url(#batGrip)" />
-                                            <path d="M 232,220 L 248,220 L 252,295 C 252,299 248,302 240,302 C 232,302 228,299 228,295 Z" fill="url(#batWood)" />
+                            {/* Wickets & sad walking cricketer SVG & Jethalal GIF */}
+                            <div style={{ display: 'flex', flexDirection: isSmall ? 'column' : 'row', alignItems: 'center', gap: 'clamp(15px, 2.5vw, 30px)', flexShrink: 0 }}>
+                                <div className="cricket-anim-unsold-static-container" style={{
+                                    width: 'clamp(180px, 25vh, 300px)',
+                                    height: 'clamp(180px, 25vh, 300px)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
+                                    <svg width="100%" height="100%" viewBox="0 0 400 400" style={{ pointerEvents: 'none' }}>
+                                        <defs>
+                                            <linearGradient id="stumpWood" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stopColor="#cd853f" />
+                                                <stop offset="50%" stopColor="#8b5a2b" />
+                                                <stop offset="100%" stopColor="#5c3a21" />
+                                            </linearGradient>
+                                            <radialGradient id="redBallShade" cx="30%" cy="30%" r="70%">
+                                                <stop offset="0%" stopColor="#ff4d4d" />
+                                                <stop offset="70%" stopColor="#990000" />
+                                                <stop offset="100%" stopColor="#3d0000" />
+                                            </radialGradient>
+                                        </defs>
+                                        <circle className="anim-unsold-shockwave" cx="200" cy="180" r="1" fill="none" stroke="#ff4444" strokeWidth="4" />
+                                        <g className="anim-stump-left" style={{ transformOrigin: '175px 260px' }}>
+                                            <rect x="171" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
                                         </g>
-                                        <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
-                                        <circle cx="200" cy="146" r="16" fill="#ffedd5" />
-                                        <path d="M 192,143 Q 195,145 198,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
-                                        <path d="M 202,143 Q 205,145 208,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
-                                        <path d="M 193,154 Q 200,148 207,154" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" />
-                                        <path d="M 194,146 L 194,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
-                                        <path d="M 206,146 L 206,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
-                                        <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#334155" />
-                                        <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#94a3b8" />
-                                    </g>
-                                </svg>
+                                        <g className="anim-stump-mid" style={{ transformOrigin: '200px 260px' }}>
+                                            <rect x="196" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
+                                        </g>
+                                        <g className="anim-stump-right" style={{ transformOrigin: '225px 260px' }}>
+                                            <rect x="221" y="160" width="8" height="100" rx="3" fill="url(#stumpWood)" />
+                                        </g>
+                                        <g className="anim-bail-left" style={{ transformOrigin: '185px 156px' }}>
+                                            <rect x="170" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
+                                        </g>
+                                        <g className="anim-bail-right" style={{ transformOrigin: '215px 156px' }}>
+                                            <rect x="202" y="154" width="28" height="6" rx="2" fill="url(#stumpWood)" />
+                                        </g>
+                                        <g className="anim-unsold-ball">
+                                            <circle cx="0" cy="0" r="14" fill="url(#redBallShade)" />
+                                            <path d="M -14,0 A 14,14 0 0,0 14,0" fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="2,2" />
+                                        </g>
+                                        <g className="sad-cricketer-walk" style={{ transformOrigin: '200px 220px' }}>
+                                            <path d="M 188,220 Q 175,250 170,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-left" style={{ transformOrigin: '188px 220px' }} />
+                                            <ellipse cx="166" cy="272" rx="8" ry="5" fill="#fff" />
+                                            <path d="M 212,220 Q 225,250 230,270" fill="none" stroke="#475569" strokeWidth="10" strokeLinecap="round" className="sad-leg-right" style={{ transformOrigin: '212px 220px' }} />
+                                            <ellipse cx="234" cy="272" rx="8" ry="5" fill="#fff" />
+                                            <path d="M 180,165 L 220,165 L 215,225 L 185,225 Z" fill="#64748b" stroke="#64748b" strokeWidth="2" />
+                                            <path d="M 180,175 L 217,200 L 215,210 L 182,185 Z" fill="#334155" />
+                                            <text x="200" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">0</text>
+                                            <path d="M 180,175 Q 165,155 180,148" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
+                                            <circle cx="180" cy="148" r="6" fill="#fff" />
+                                            <path d="M 220,175 Q 235,210 240,220" fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" />
+                                            <circle cx="240" cy="220" r="6" fill="#fff" />
+                                            <g style={{ transformOrigin: '240px 220px', transform: 'rotate(25deg)' }}>
+                                                <rect x="237" y="190" width="6" height="30" rx="2" fill="url(#batGrip)" />
+                                                <path d="M 232,220 L 248,220 L 252,295 C 252,299 248,302 240,302 C 232,302 228,299 228,295 Z" fill="url(#batWood)" />
+                                            </g>
+                                            <rect x="195" y="158" width="10" height="10" fill="#ffedd5" />
+                                            <circle cx="200" cy="146" r="16" fill="#ffedd5" />
+                                            <path d="M 192,143 Q 195,145 198,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
+                                            <path d="M 202,143 Q 205,145 208,143" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
+                                            <path d="M 193,154 Q 200,148 207,154" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" />
+                                            <path d="M 194,146 L 194,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
+                                            <path d="M 206,146 L 206,158" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="3,3" strokeDashoffset="0" className="sad-tears" />
+                                            <path d="M 182,142 A 18,18 0 0,1 218,142 Z" fill="#334155" />
+                                            <path d="M 215,142 L 230,145 L 230,149 L 215,148 Z" fill="#94a3b8" />
+                                        </g>
+                                    </svg>
+                                </div>
+                                <img
+                                    src="https://media1.tenor.com/m/FqCZEtnZp10AAAAd/jethalal-jethalal-face-expression.gif"
+                                    alt="Jethalal Sad Expression"
+                                    style={{
+                                        width: 'clamp(180px, 25vh, 300px)',
+                                        height: 'auto',
+                                        aspectRatio: '1',
+                                        borderRadius: '16px',
+                                        border: '4px solid #ff4444',
+                                        boxShadow: '0 0 30px rgba(255,68,68,0.4)',
+                                        objectFit: 'cover',
+                                        flexShrink: 0
+                                    }}
+                                />
                             </div>
 
                             {/* Details Card */}
@@ -1016,6 +1106,10 @@ const LiveAuctionProjectorPage = () => {
                 @keyframes slideUp {
                     from { transform: translateY(50px); opacity: 0; }
                     to   { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes goldGlowPulse {
+                    0%, 100% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.2); border-color: rgba(255, 215, 0, 0.4); }
+                    50%      { box-shadow: 0 0 45px rgba(255, 215, 0, 0.45); border-color: rgba(255, 215, 0, 0.9); }
                 }
                 @keyframes bounceIn {
                     0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
