@@ -168,7 +168,7 @@ const LiveAuctionPage = () => {
             if (!activePlayer.current_bid_team_id) {
                 nextBid = activeAuction.base_price;
             } else {
-                if (currentBid < 30000) {
+                if (currentBid < 20000) {
                     nextBid = currentBid + 2000;
                 } else {
                     nextBid = currentBid + 5000;

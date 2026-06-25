@@ -70,7 +70,7 @@ const StatsPage = () => {
 
     useEffect(() => {
         if (!activeAuction?.id) return;
-        
+
         const subscription = supabase
             .channel('stats_realtime_updates')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, () => {
@@ -113,13 +113,13 @@ const StatsPage = () => {
     const allPlayersSorted = [...players].sort((a, b) => {
         const aSold = a.auction_status === 'sold';
         const bSold = b.auction_status === 'sold';
-        
+
         if (aSold && !bSold) return -1;
         if (!aSold && bSold) return 1;
         if (aSold && bSold) {
             return (b.sold_price || 0) - (a.sold_price || 0);
         }
-        
+
         // Secondary sort for unsold/pending by player_number
         const aNum = a.player_number != null ? a.player_number : Infinity;
         const bNum = b.player_number != null ? b.player_number : Infinity;
@@ -130,9 +130,9 @@ const StatsPage = () => {
         const fullName = `${p.players?.first_name || ''} ${p.players?.last_name || ''}`.toLowerCase();
         const search = searchTerm.toLowerCase();
         const teamName = teams.find(t => t.id === p.team_id)?.team_name?.toLowerCase() || '';
-        return fullName.includes(search) || 
-               teamName.includes(search) || 
-               (p.player_number && p.player_number.toString().includes(search));
+        return fullName.includes(search) ||
+            teamName.includes(search) ||
+            (p.player_number && p.player_number.toString().includes(search));
     });
 
     const formatPriceCompact = (price) => {
@@ -155,7 +155,7 @@ const StatsPage = () => {
             <PageHeader title="AUCTION STATISTICS" subtitle={activeAuction.auction_name} showLogos={false} />
 
             <main className="container" style={{ flex: 1, padding: '2rem 1rem 4rem', zIndex: 1, position: 'relative' }}>
-                
+
                 {/* Tabs & Navigation */}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button
@@ -172,7 +172,7 @@ const StatsPage = () => {
                     >
                         📋 SQUAD BOARD
                     </button>
-                    
+
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
                         <a href="#/all-players" className="btn btn-outline" style={{ padding: '0.6rem 1rem', fontSize: '0.9rem' }}>Registered Players</a>
                         <a href="#/teams" className="btn btn-outline" style={{ padding: '0.6rem 1rem', fontSize: '0.9rem' }}>Squads</a>
@@ -185,7 +185,7 @@ const StatsPage = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <h1 style={{ fontSize: '2.8rem', fontWeight: 'bold', color: '#fff', margin: 0, fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                    Auction<span style={{ color: 'var(--accent-green)' }}>Hero</span>
+                                    Cricket<span style={{ color: 'var(--accent-green)' }}>Auction</span>
                                 </h1>
                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 'bold', marginTop: '0.2rem' }}>
                                     {activeAuction.auction_name}
@@ -211,21 +211,21 @@ const StatsPage = () => {
                                 const teamName = team ? team.team_name : '-';
                                 const role = p ? p.players?.player_role : '-';
                                 const price = p ? p.sold_price : 0;
-                                const fallbackAvatar = p 
+                                const fallbackAvatar = p
                                     ? `https://ui-avatars.com/api/?name=${p.players?.first_name}+${p.players?.last_name}&background=1f2937&color=39ff14&size=256`
                                     : `https://ui-avatars.com/api/?name=Empty+Slot&background=020617&color=475569&size=256`;
-                                const imageUrl = p?.players?.photo_url 
-                                    ? getOptimizedImageUrl(p.players.photo_url, 300) 
+                                const imageUrl = p?.players?.photo_url
+                                    ? getOptimizedImageUrl(p.players.photo_url, 300)
                                     : fallbackAvatar;
 
                                 return (
-                                    <div 
-                                        key={p ? p.id : `empty-${idx}`} 
-                                        className="glass-panel" 
-                                        style={{ 
-                                            overflow: 'hidden', 
-                                            display: 'flex', 
-                                            flexDirection: 'column', 
+                                    <div
+                                        key={p ? p.id : `empty-${idx}`}
+                                        className="glass-panel"
+                                        style={{
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            flexDirection: 'column',
                                             border: '1px solid rgba(255,255,255,0.08)',
                                             borderRadius: '12px',
                                             background: 'linear-gradient(to bottom, rgba(15,23,42,0.4), rgba(2,6,23,0.8))',
@@ -250,9 +250,9 @@ const StatsPage = () => {
                                     >
                                         {/* Player Image with Gradient Shadow */}
                                         <div style={{ position: 'relative', width: '100%', paddingTop: '115%', backgroundColor: '#020617' }}>
-                                            <img 
-                                                src={imageUrl} 
-                                                alt={name} 
+                                            <img
+                                                src={imageUrl}
+                                                alt={name}
                                                 onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
                                                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
                                             />
@@ -263,7 +263,7 @@ const StatsPage = () => {
 
                                             {/* Gradient Overlay for text readability */}
                                             <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60%', background: 'linear-gradient(to top, rgba(2, 6, 23, 0.95), transparent)' }}></div>
-                                            
+
                                             {/* Overlay Text: Name */}
                                             <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', textAlign: 'center' }}>
                                                 <h3 style={{ fontSize: '1.25rem', color: '#fff', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -274,16 +274,16 @@ const StatsPage = () => {
 
                                         {/* Details Panel */}
                                         <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'space-between' }}>
-                                            
+
                                             {/* Team Name Badge */}
-                                            <div style={{ 
-                                                padding: '0.2rem 0.8rem', 
-                                                borderRadius: '4px', 
-                                                background: 'rgba(255,255,255,0.06)', 
-                                                color: 'var(--text-muted)', 
-                                                fontSize: '0.75rem', 
-                                                fontWeight: 'bold', 
-                                                textTransform: 'uppercase', 
+                                            <div style={{
+                                                padding: '0.2rem 0.8rem',
+                                                borderRadius: '4px',
+                                                background: 'rgba(255,255,255,0.06)',
+                                                color: 'var(--text-muted)',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
                                                 textAlign: 'center',
                                                 border: '1px solid rgba(255,255,255,0.04)',
                                                 maxWidth: '100%',
@@ -350,10 +350,10 @@ const StatsPage = () => {
                                             const imageUrl = p.players?.photo_url ? getOptimizedImageUrl(p.players.photo_url, 100) : fallbackAvatar;
 
                                             return (
-                                                <tr 
-                                                    key={p.id} 
-                                                    style={{ 
-                                                        borderBottom: '1px solid var(--glass-border)', 
+                                                <tr
+                                                    key={p.id}
+                                                    style={{
+                                                        borderBottom: '1px solid var(--glass-border)',
                                                         background: isSold ? 'rgba(57, 255, 20, 0.02)' : 'rgba(0,0,0,0.1)',
                                                         transition: 'background 0.2s'
                                                     }}
@@ -367,9 +367,9 @@ const StatsPage = () => {
                                                         {p.player_number != null ? `#${p.player_number}` : '-'}
                                                     </td>
                                                     <td style={{ padding: '1rem' }}>
-                                                        <img 
-                                                            src={imageUrl} 
-                                                            alt="Player" 
+                                                        <img
+                                                            src={imageUrl}
+                                                            alt="Player"
                                                             onError={(e) => { e.target.onerror = null; e.target.src = fallbackAvatar; }}
                                                             style={{ width: 45, height: 45, objectFit: 'cover', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)' }}
                                                         />
