@@ -107,10 +107,17 @@ const LiveAuctionPage = () => {
                     .eq('auction_id', auctionData.id)
                     .eq('approval_status', 'approved');
 
-                setPlayers(apData || []);
+                // Sort by player_number ascending, putting null player_numbers at the end
+                const sortedPlayers = (apData || []).sort((a, b) => {
+                    const numA = a.player_number != null ? a.player_number : Infinity;
+                    const numB = b.player_number != null ? b.player_number : Infinity;
+                    if (numA !== numB) return numA - numB;
+                    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                });
+                setPlayers(sortedPlayers);
 
                 // Find currently active player
-                const currentActive = apData?.find(p => p.auction_status === 'active');
+                const currentActive = sortedPlayers?.find(p => p.auction_status === 'active');
                 setActivePlayer(currentActive || null);
             }
         } catch (err) {

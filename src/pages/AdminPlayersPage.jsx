@@ -83,8 +83,13 @@ const AdminPlayersPage = () => {
             };
           });
 
-          // Reverse sort so newest is first
-          setPlayersList(merged.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
+          // Sort by player_number ascending, putting null player_numbers at the end
+          setPlayersList(merged.sort((a, b) => {
+            const numA = a.player_number != null ? a.player_number : Infinity;
+            const numB = b.player_number != null ? b.player_number : Infinity;
+            if (numA !== numB) return numA - numB;
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+          }));
         } else {
           setPlayersList([]);
         }
@@ -313,52 +318,71 @@ const AdminPlayersPage = () => {
 
   const backfillPlayerNumbers = async () => {
     if (!activeAuction) return alert('No active auction found.');
-    if (!window.confirm('This will assign player numbers to all players that currently have none (ordered by registration date). Continue?')) return;
+    if (!window.confirm('This will reassign player numbers to all players. Icon players will be numbered first (starting from 1), followed by all other players. Continue?')) return;
 
     setActionLoading(true);
     try {
-      // 1. Get current max player_number for this auction
-      const { data: maxData } = await supabase
+      // 1. Get all auction_players for this auction
+      const { data: allPlayers, error: fetchErr } = await supabase
         .from('auction_players')
-        .select('player_number')
-        .eq('auction_id', activeAuction.id)
-        .not('player_number', 'is', null)
-        .order('player_number', { ascending: false })
-        .limit(1);
-
-      let nextNumber = (maxData && maxData.length > 0 && maxData[0].player_number != null)
-        ? maxData[0].player_number + 1
-        : 1;
-
-      // 2. Get all auction_players with null player_number, ordered by created_at (old first)
-      const { data: nullPlayers, error: fetchErr } = await supabase
-        .from('auction_players')
-        .select('id, created_at')
-        .eq('auction_id', activeAuction.id)
-        .is('player_number', null)
-        .order('created_at', { ascending: true });
+        .select('id, player_number, is_icon, created_at')
+        .eq('auction_id', activeAuction.id);
 
       if (fetchErr) throw fetchErr;
-      if (!nullPlayers || nullPlayers.length === 0) {
-        alert('All players already have a player number assigned!');
+      if (!allPlayers || allPlayers.length === 0) {
+        alert('No players found to number.');
         return;
       }
 
-      // 3. Update each one sequentially
-      for (const ap of nullPlayers) {
+      // 2. Separate into icon and non-icon players
+      const iconPlayers = allPlayers.filter(p => p.is_icon);
+      const otherPlayers = allPlayers.filter(p => !p.is_icon);
+
+      // 3. Sort each group
+      // First sort icon players: by existing player_number (if any), then by created_at
+      iconPlayers.sort((a, b) => {
+        const numA = a.player_number != null ? a.player_number : Infinity;
+        const numB = b.player_number != null ? b.player_number : Infinity;
+        if (numA !== numB) return numA - numB;
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      });
+
+      // Sort other players: by existing player_number (if any), then by created_at
+      otherPlayers.sort((a, b) => {
+        const numA = a.player_number != null ? a.player_number : Infinity;
+        const numB = b.player_number != null ? b.player_number : Infinity;
+        if (numA !== numB) return numA - numB;
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      });
+
+      // 4. Combine them: icon players first, then others
+      const sortedPlayers = [...iconPlayers, ...otherPlayers];
+
+      // 5. Reset all player_numbers in this auction to null first to avoid unique constraint conflicts
+      const { error: resetErr } = await supabase
+        .from('auction_players')
+        .update({ player_number: null })
+        .eq('auction_id', activeAuction.id);
+
+      if (resetErr) throw resetErr;
+
+      // 6. Update each player's number sequentially starting from 1
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const p = sortedPlayers[i];
+        const newNumber = i + 1;
+        
         const { error: updateErr } = await supabase
           .from('auction_players')
-          .update({ player_number: nextNumber })
-          .eq('id', ap.id);
+          .update({ player_number: newNumber })
+          .eq('id', p.id);
         if (updateErr) throw updateErr;
-        nextNumber++;
       }
 
-      alert(`✅ Successfully assigned numbers to ${nullPlayers.length} player(s)!`);
+      alert(`✅ Successfully fixed numbering for all ${sortedPlayers.length} player(s)!`);
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('Failed to backfill player numbers: ' + err.message);
+      alert('Failed to fix player numbers: ' + err.message);
     } finally {
       setActionLoading(false);
     }
