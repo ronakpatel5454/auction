@@ -4,6 +4,8 @@ import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import { Link, Navigate } from 'react-router-dom';
 import { getOptimizedImageUrl } from '../services/cloudinary';
+import { generateAllTeamsPDF } from '../services/pdfGenerator';
+import { Download } from 'lucide-react';
 
 const TeamDetailsPage = () => {
     const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
@@ -97,12 +99,33 @@ const TeamDetailsPage = () => {
             <PageHeader title="Team Roster & Purse" showLogos={false} />
 
             <main className="container" style={{ padding: '2rem 1rem', zIndex: 1, position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                          <Link to="/admin" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>← Dashboard</Link>
                          <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.2rem' }}>{activeAuction?.auction_name || 'Auction Details'}</h2>
                     </div>
-                    <Link to="/live-auction" className="btn btn-primary" style={{ padding: '0.5rem 1.2rem', background: 'var(--accent-gold)', fontSize: '0.9rem' }}>Live Bidding</Link>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {activeAuction && teams.length > 0 && (
+                            <button 
+                                onClick={() => generateAllTeamsPDF(activeAuction, teams, squads)}
+                                className="btn btn-outline" 
+                                style={{ 
+                                    padding: '0.5rem 1.2rem', 
+                                    border: '1px solid var(--accent-green)', 
+                                    color: 'var(--accent-green)', 
+                                    fontSize: '0.9rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    cursor: 'pointer',
+                                    background: 'transparent'
+                                }}
+                            >
+                                <Download size={16} /> Download Teams PDF
+                            </button>
+                        )}
+                        <Link to="/live-auction" className="btn btn-primary" style={{ padding: '0.5rem 1.2rem', background: 'var(--accent-gold)', fontSize: '0.9rem' }}>Live Bidding</Link>
+                    </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '2rem', height: 'calc(100vh - 250px)', minHeight: '600px' }}>

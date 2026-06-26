@@ -5,6 +5,8 @@ import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
 import { Link } from 'react-router-dom';
 import { getOptimizedImageUrl } from '../services/cloudinary';
+import { generateAllTeamsPDF } from '../services/pdfGenerator';
+import { Download } from 'lucide-react';
 
 const PublicTeamsPage = () => {
     const [loading, setLoading] = useState(true);
@@ -109,6 +111,41 @@ const PublicTeamsPage = () => {
                 subtitle={activeAuction ? `Projector View - ${activeAuction.auction_name}` : ''}
                 showLogos={true} 
             />
+
+            {activeAuction && teams.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', zIndex: 10, position: 'relative' }}>
+                    <button 
+                        onClick={() => generateAllTeamsPDF(activeAuction, teams, squads)}
+                        className="btn"
+                        style={{ 
+                            padding: '0.6rem 1.5rem', 
+                            background: 'var(--accent-green)', 
+                            color: '#000', 
+                            fontWeight: 'bold',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 0 10px rgba(0, 255, 0, 0.2)',
+                            border: 'none',
+                            fontFamily: 'var(--font-heading)',
+                            letterSpacing: '1px',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.2)';
+                        }}
+                    >
+                        <Download size={16} /> DOWNLOAD TEAMS PDF
+                    </button>
+                </div>
+            )}
 
             <main className="container" style={{ 
                 flex: 1, 
