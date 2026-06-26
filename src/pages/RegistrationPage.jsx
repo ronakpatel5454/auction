@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { uploadToCloudinary } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 
 const RegistrationPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const auctionCodeParam = searchParams.get('code');
+  const [inputCode, setInputCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+
   const [activeAuction, setActiveAuction] = useState(null);
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,35 +25,55 @@ const RegistrationPage = () => {
     photo: null, aadhar: null
   });
 
-  useEffect(() => {
-    const fetchAuction = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('auctions')
-          .select('id, auction_name, qr_code_url, per_player_fees, status')
-          .in('status', ['registration_open', 'running'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+  const fetchAuctionByCode = async (code) => {
+    try {
+      setLoading(true);
+      setFormError('');
+      setCodeError('');
+      setRegistrationClosed(false);
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('id, auction_name, qr_code_url, per_player_fees, status, auction_code')
+        .eq('auction_code', code)
+        .maybeSingle();
 
-        if (error) throw error;
-        
-        if (data) {
-          if (data.status === 'running') {
-            setRegistrationClosed(true);
-            setActiveAuction(data);
-          } else if (data.status === 'registration_open') {
-            setActiveAuction(data);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+      
+      if (!data) {
+        throw new Error("No auction found with code: " + code);
       }
-    };
-    fetchAuction();
-  }, []);
+
+      if (data.status === 'running' || data.status === 'completed') {
+        setRegistrationClosed(true);
+        setActiveAuction(data);
+      } else if (data.status === 'registration_open') {
+        setActiveAuction(data);
+      } else {
+        throw new Error("Registration is not open for this auction.");
+      }
+    } catch (err) {
+      console.error("Error fetching auction by code:", err);
+      setCodeError(err.message || "Invalid auction code.");
+      setActiveAuction(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (auctionCodeParam) {
+      fetchAuctionByCode(auctionCodeParam);
+    } else {
+      setActiveAuction(null);
+      setLoading(false);
+    }
+  }, [auctionCodeParam]);
+
+  const handleVerifyCodeSubmit = (e) => {
+    e.preventDefault();
+    if (!inputCode.trim()) return;
+    setSearchParams({ code: inputCode.trim() });
+  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -194,15 +220,37 @@ const RegistrationPage = () => {
   if (!activeAuction) {
     return (
       <div className="flex-col min-h-screen">
+        <div className="spotlight"></div>
         <PageHeader title="Player Registration" showLogos={false} />
-        <main className="container flex-col items-center justify-center text-center" style={{ flex: 1, padding: '4rem 1rem' }}>
-          <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '600px', width: '100%', margin: '0 auto' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
-            <h2 style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>No Active Auction</h2>
-            <p className="text-muted" style={{ marginBottom: '2rem' }}>
-              There are currently no auctions open for registration. Please check back later.
+        <main className="container flex-col items-center justify-center text-center" style={{ flex: 1, padding: '4rem 1rem', zIndex: 1, position: 'relative' }}>
+          <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '500px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem' }}>🏏</div>
+            <h2 style={{ color: 'var(--text-main)', margin: '0' }}>ENTER TOURNAMENT CODE</h2>
+            <p className="text-muted" style={{ fontSize: '0.95rem', margin: 0 }}>
+              To register as a player, enter the unique tournament code shared by your organizer.
             </p>
-            <a href="#/" className="btn btn-outline">Return to Home</a>
+            {codeError && (
+              <div style={{ background: 'rgba(255,0,0,0.1)', border: '1px solid #ff4444', color: '#ff4444', padding: '0.75rem', borderRadius: '6px', fontSize: '0.9rem' }}>
+                {codeError}
+              </div>
+            )}
+            <form onSubmit={handleVerifyCodeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+              <input
+                type="text"
+                value={inputCode}
+                onChange={e => setInputCode(e.target.value)}
+                placeholder="e.g. IPL26"
+                className="form-input text-center"
+                style={{ fontSize: '1.2rem', letterSpacing: '2px', textTransform: 'uppercase', padding: '0.75rem' }}
+                required
+              />
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', fontSize: '1.1rem', padding: '0.75rem' }}>
+                Verify & Register
+              </button>
+            </form>
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+              <a href="#/" className="btn btn-outline" style={{ width: '100%' }}>Back to Home Hub</a>
+            </div>
           </div>
         </main>
       </div>

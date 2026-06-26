@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
@@ -7,6 +8,10 @@ import FilterBar from '../components/FilterBar';
 import PlayerCard from '../components/PlayerCard';
 
 const PublicPlayersPage = () => {
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code');
+    const [allAuctions, setAllAuctions] = useState([]);
+
     const [activeAuction, setActiveAuction] = useState(null);
     const [players, setPlayers] = useState([]);
     const [filteredPlayers, setFilteredPlayers] = useState([]);
@@ -31,56 +36,71 @@ const PublicPlayersPage = () => {
     useEffect(() => {
         const fetchPublicData = async () => {
             try {
-                const { data: auctionData, error: auctionError } = await supabase
-                    .from('auctions')
-                    .select('id, auction_name, auction_logo, auction_date, venue')
-                    .in('status', ['registration_open', 'running'])
-                    .limit(1)
-                    .single();
+                setLoading(true);
+                if (auctionCode) {
+                    const { data: auctionData, error: auctionError } = await supabase
+                        .from('auctions')
+                        .select('id, auction_name, auction_logo, auction_date, venue')
+                        .eq('auction_code', auctionCode)
+                        .maybeSingle();
 
-                if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
-                setActiveAuction(auctionData);
+                    if (auctionError) throw auctionError;
+                    setActiveAuction(auctionData);
 
-                if (auctionData) {
-                    const { data: apData, error: apError } = await supabase
-                        .from('auction_players')
-                        .select('player_id, player_number, approval_status, is_icon, sold_price, auction_status')
-                        .eq('auction_id', auctionData.id)
-                        .neq('approval_status', 'rejected'); 
+                    if (auctionData) {
+                        const { data: apData, error: apError } = await supabase
+                            .from('auction_players')
+                            .select('player_id, player_number, approval_status, is_icon, sold_price, auction_status')
+                            .eq('auction_id', auctionData.id)
+                            .neq('approval_status', 'rejected'); 
 
-                    if (apError) throw apError;
+                        if (apError) throw apError;
 
-                    if (apData && apData.length > 0) {
-                        const playerIds = apData.map(ap => ap.player_id);
+                        if (apData && apData.length > 0) {
+                            const playerIds = apData.map(ap => ap.player_id);
 
-                        const { data: pData, error: pError } = await supabase
-                            .from('players')
-                            .select('*')
-                            .in('id', playerIds);
+                            const { data: pData, error: pError } = await supabase
+                                .from('players')
+                                .select('*')
+                                .in('id', playerIds);
 
-                        if (pError) throw pError;
+                            if (pError) throw pError;
 
-                        const apMap = {};
-                        apData.forEach(ap => {
-                            apMap[ap.player_id] = {
-                                player_number: ap.player_number,
-                                is_icon: ap.is_icon,
-                                sold_price: ap.sold_price,
-                                auction_status: ap.auction_status
-                            };
-                        });
+                            const apMap = {};
+                            apData.forEach(ap => {
+                                apMap[ap.player_id] = {
+                                    player_number: ap.player_number,
+                                    is_icon: ap.is_icon,
+                                    sold_price: ap.sold_price,
+                                    auction_status: ap.auction_status
+                                };
+                            });
 
-                        const mergedPlayers = (pData || []).map(p => ({
-                            ...p,
-                            player_number: apMap[p.id]?.player_number ?? null,
-                            is_icon: apMap[p.id]?.is_icon ?? false,
-                            sold_price: apMap[p.id]?.sold_price ?? 0,
-                            auction_status: apMap[p.id]?.auction_status ?? null
-                        })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
+                            const mergedPlayers = (pData || []).map(p => ({
+                                ...p,
+                                player_number: apMap[p.id]?.player_number ?? null,
+                                is_icon: apMap[p.id]?.is_icon ?? false,
+                                sold_price: apMap[p.id]?.sold_price ?? 0,
+                                auction_status: apMap[p.id]?.auction_status ?? null
+                            })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
 
-                        setPlayers(mergedPlayers);
-                        applyFilters(mergedPlayers, filters, searchTerm);
+                            setPlayers(mergedPlayers);
+                            applyFilters(mergedPlayers, filters, searchTerm);
+                        } else {
+                            setPlayers([]);
+                            setFilteredPlayers([]);
+                        }
                     }
+                } else {
+                    setActiveAuction(null);
+                    const { data, error } = await supabase
+                        .from('auctions')
+                        .select('*')
+                        .neq('status', 'draft')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    setAllAuctions(data || []);
                 }
             } catch (err) {
                 console.error("Error fetching public players:", err);
@@ -90,7 +110,7 @@ const PublicPlayersPage = () => {
         };
 
         fetchPublicData();
-    }, []);
+    }, [auctionCode]);
 
     const applyFilters = (allPlayers, currentFilters, currentSearch) => {
         let result = [...allPlayers];
@@ -144,10 +164,41 @@ const PublicPlayersPage = () => {
 
             <main className="container" style={{ flex: 1, padding: '2rem 1rem 4rem', zIndex: 1, position: 'relative' }}>
                 {!activeAuction ? (
-                    <EmptyState
-                        title="No Active Auction"
-                        description="There is no active auction at the moment. Please check back later."
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                            <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Select Tournament to View Players</h3>
+                            <p className="text-muted" style={{ marginBottom: 0 }}>Please select a tournament from the list below to view its registered players.</p>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                            {allAuctions.length === 0 ? (
+                                <div className="glass-panel" style={{ padding: '3rem', gridColumn: '1 / -1', textAlign: 'center' }}>
+                                    <p className="text-muted" style={{ margin: 0 }}>No tournaments found.</p>
+                                </div>
+                            ) : (
+                                allAuctions.map(a => (
+                                    <Link key={a.id} to={`/all-players?code=${a.auction_code}`} className="glass-panel render-card" style={{ padding: '2rem 1.5rem', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--glass-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ 
+                                                padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase',
+                                                background: a.status === 'running' ? 'rgba(239, 68, 68, 0.15)' : a.status === 'registration_open' ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.06)',
+                                                color: a.status === 'running' ? '#f87171' : a.status === 'registration_open' ? 'var(--accent-green)' : 'var(--text-muted)'
+                                            }}>
+                                                {a.status === 'running' ? '🔴 Live' : a.status === 'registration_open' ? '🟢 Open' : '⚪ Ended'}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{a.auction_code}</span>
+                                        </div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>{a.auction_name}</h3>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {a.venue ? `📍 ${a.venue}` : ''}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', color: 'var(--accent-green)', fontWeight: 'bold', fontSize: '0.85rem', alignItems: 'center', gap: '0.25rem' }}>
+                                            View Players →
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 ) : (
                     <>
                         {/* Custom Search & Filter Area */}

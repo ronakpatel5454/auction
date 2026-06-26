@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -28,6 +28,9 @@ const getBase64ImageFromURL = (url) => {
 };
 
 const PlayersPage = () => {
+  const [searchParams] = useSearchParams();
+  const auctionCode = searchParams.get('code') || localStorage.getItem('cap_admin_selected_auction_code');
+
   const [activeAuction, setActiveAuction] = useState(null);
   const [players, setPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
@@ -45,91 +48,82 @@ const PlayersPage = () => {
   const [pdfGroup, setPdfGroup] = useState('none');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
-  // const [filterOptions, setFilterOptions] = useState({
-  //   player_role: [],
-  //   batting_style: [],
-  //   bowling_style: []
-  // });
-
   const filterOptions = {
     player_role: ['Batter', 'Bowler', 'All Rounder', 'Wicket Keeper'],
     batting_style: ['Right Hand', 'Left Hand'],
     bowling_style: ['Right Arm Fast', 'Right Arm Medium', 'Right Arm Spin', 'Left Arm Fast', 'Left Arm Spin', 'None']
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: auctionData, error: auctionError } = await supabase
-          .from('auctions')
-          .select('id, auction_name, auction_logo, auction_date, venue')
-          .in('status', ['registration_open', 'running'])
-          .limit(1)
-          .single();
-
-        if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
-        setActiveAuction(auctionData);
-
-        if (auctionData) {
-          // 1. Fetch approved auction_players mapping (with player_number, is_icon, sold_price, auction_status)
-          const { data: apData, error: apError } = await supabase
-            .from('auction_players')
-            .select('player_id, player_number, is_icon, sold_price, auction_status')
-            .eq('auction_id', auctionData.id)
-            .eq('approval_status', 'approved');
-
-          if (apError) throw apError;
-
-          let extractedPlayers = [];
-
-          if (apData && apData.length > 0) {
-            const playerIds = apData.map(ap => ap.player_id);
-
-            // 2. Fetch actual player details
-            const { data: pData, error: pError } = await supabase
-              .from('players')
-              .select('*')
-              .in('id', playerIds);
-
-            if (pError) throw pError;
-
-            // 3. Merge player details into each player, then sort by player_number
-            const apMap = {};
-            apData.forEach(ap => {
-              apMap[ap.player_id] = {
-                player_number: ap.player_number,
-                is_icon: ap.is_icon,
-                sold_price: ap.sold_price,
-                auction_status: ap.auction_status
-              };
-            });
-
-            extractedPlayers = (pData || []).map(p => ({
-              ...p,
-              player_number: apMap[p.id]?.player_number ?? null,
-              is_icon: apMap[p.id]?.is_icon ?? false,
-              sold_price: apMap[p.id]?.sold_price ?? 0,
-              auction_status: apMap[p.id]?.auction_status ?? null
-            })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
-          }
-          setPlayers(extractedPlayers);
-          setFilteredPlayers(extractedPlayers);
-
-          // setFilterOptions({
-          //   player_role: [...new Set(extractedPlayers.map(p => p.player_role).filter(Boolean))],
-          //   batting_style: [...new Set(extractedPlayers.map(p => p.batting_style).filter(Boolean))],
-          //   bowling_style: [...new Set(extractedPlayers.map(p => p.bowling_style).filter(Boolean))]
-          // });
-
-        }
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
+  const fetchData = async () => {
+    try {
+      if (!auctionCode) {
         setLoading(false);
+        return;
       }
-    };
+      const { data: auctionData, error: auctionError } = await supabase
+        .from('auctions')
+        .select('id, auction_name, auction_logo, auction_date, venue')
+        .eq('auction_code', auctionCode)
+        .maybeSingle();
+
+      if (auctionError) throw auctionError;
+      setActiveAuction(auctionData);
+
+      if (auctionData) {
+        // 1. Fetch approved auction_players mapping (with player_number, is_icon, sold_price, auction_status)
+        const { data: apData, error: apError } = await supabase
+          .from('auction_players')
+          .select('player_id, player_number, is_icon, sold_price, auction_status')
+          .eq('auction_id', auctionData.id)
+          .eq('approval_status', 'approved');
+
+        if (apError) throw apError;
+
+        let extractedPlayers = [];
+
+        if (apData && apData.length > 0) {
+          const playerIds = apData.map(ap => ap.player_id);
+
+          // 2. Fetch actual player details
+          const { data: pData, error: pError } = await supabase
+            .from('players')
+            .select('*')
+            .in('id', playerIds);
+
+          if (pError) throw pError;
+
+          // 3. Merge player details into each player, then sort by player_number
+          const apMap = {};
+          apData.forEach(ap => {
+            apMap[ap.player_id] = {
+              player_number: ap.player_number,
+              is_icon: ap.is_icon,
+              sold_price: ap.sold_price,
+              auction_status: ap.auction_status
+            };
+          });
+
+          extractedPlayers = (pData || []).map(p => ({
+            ...p,
+            player_number: apMap[p.id]?.player_number ?? null,
+            is_icon: apMap[p.id]?.is_icon ?? false,
+            sold_price: apMap[p.id]?.sold_price ?? 0,
+            auction_status: apMap[p.id]?.auction_status ?? null
+          })).sort((a, b) => (a.player_number ?? 9999) - (b.player_number ?? 9999));
+        }
+        setPlayers(extractedPlayers);
+        setFilteredPlayers(extractedPlayers);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [auctionCode]);
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
@@ -326,6 +320,7 @@ const PlayersPage = () => {
   };
 
   if (loading) return <Loader message="LOADING PLAYERS..." />;
+  if (!auctionCode || (!loading && !activeAuction)) return <Navigate to="/admin" replace />;
 
   const totalPages = Math.ceil(filteredPlayers.length / playersPerPage);
   const startIndex = (currentPage - 1) * playersPerPage;

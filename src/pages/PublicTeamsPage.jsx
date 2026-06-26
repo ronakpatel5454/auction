@@ -3,12 +3,16 @@ import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getOptimizedImageUrl } from '../services/cloudinary';
 import { generateAllTeamsPDF } from '../services/pdfGenerator';
 import { Download } from 'lucide-react';
 
 const PublicTeamsPage = () => {
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code');
+    const [allAuctions, setAllAuctions] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [activeAuction, setActiveAuction] = useState(null);
     const [teams, setTeams] = useState([]);
@@ -26,16 +30,28 @@ const PublicTeamsPage = () => {
         try {
             let currentAuctionId = auctionId;
             if (!currentAuctionId) {
-                const { data: auctionData } = await supabase
-                    .from('auctions')
-                    .select('*')
-                    .in('status', ['registration_open', 'running'])
-                    .limit(1)
-                    .single();
-                
-                if (!auctionData) return;
-                setActiveAuction(auctionData);
-                currentAuctionId = auctionData.id;
+                if (auctionCode) {
+                    const { data: auctionData } = await supabase
+                        .from('auctions')
+                        .select('*')
+                        .eq('auction_code', auctionCode)
+                        .maybeSingle();
+                    
+                    if (!auctionData) return;
+                    setActiveAuction(auctionData);
+                    currentAuctionId = auctionData.id;
+                } else {
+                    setActiveAuction(null);
+                    const { data, error } = await supabase
+                        .from('auctions')
+                        .select('*')
+                        .neq('status', 'draft')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    setAllAuctions(data || []);
+                    return;
+                }
             }
 
             const { data: tData } = await supabase
@@ -46,8 +62,8 @@ const PublicTeamsPage = () => {
 
             setTeams(tData || []);
             
-            if (tData && tData.length > 0 && !selectedTeamId) {
-                setSelectedTeamId(tData[0].id);
+            if (tData && tData.length > 0) {
+                setSelectedTeamId(prev => prev || tData[0].id);
             }
 
             const { data: apData } = await supabase
@@ -70,13 +86,17 @@ const PublicTeamsPage = () => {
 
     useEffect(() => {
         fetchData();
+    }, [auctionCode]);
+
+    useEffect(() => {
+        if (!activeAuction?.id) return;
         
         const subscription = supabase
             .channel('projector_team_updates_v2')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, payload => {
                 const { new: updatedPlayer, old: oldPlayer } = payload;
                 if (!updatedPlayer || !oldPlayer) {
-                    fetchData(activeAuction?.id); // Always refetch for inserts/deletes
+                    fetchData(activeAuction?.id);
                     return;
                 }
                 const statusChanged = updatedPlayer.auction_status !== oldPlayer.auction_status;
@@ -161,7 +181,41 @@ const PublicTeamsPage = () => {
             }}>
                 
                 {!activeAuction ? (
-                    <EmptyState title="No Active Auction" description="Projector view will be available once an auction starts." />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                            <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Select Tournament to View Squads</h3>
+                            <p className="text-muted" style={{ marginBottom: 0 }}>Please select a tournament from the list below to view its teams and budgets.</p>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', width: '100%' }}>
+                            {allAuctions.length === 0 ? (
+                                <div className="glass-panel" style={{ padding: '3rem', gridColumn: '1 / -1', textAlign: 'center' }}>
+                                    <p className="text-muted" style={{ margin: 0 }}>No tournaments found.</p>
+                                </div>
+                            ) : (
+                                allAuctions.map(a => (
+                                    <Link key={a.id} to={`/teams?code=${a.auction_code}`} className="glass-panel render-card" style={{ padding: '2rem 1.5rem', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--glass-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ 
+                                                padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase',
+                                                background: a.status === 'running' ? 'rgba(239, 68, 68, 0.15)' : a.status === 'registration_open' ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.06)',
+                                                color: a.status === 'running' ? '#f87171' : a.status === 'registration_open' ? 'var(--accent-green)' : 'var(--text-muted)'
+                                            }}>
+                                                {a.status === 'running' ? '🔴 Live' : a.status === 'registration_open' ? '🟢 Open' : '⚪ Ended'}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{a.auction_code}</span>
+                                        </div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>{a.auction_name}</h3>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {a.venue ? `📍 ${a.venue}` : ''}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', color: 'var(--accent-green)', fontWeight: 'bold', fontSize: '0.85rem', alignItems: 'center', gap: '0.25rem' }}>
+                                            View Squads →
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 ) : (
                     <>
                         {/* Sidebar */}

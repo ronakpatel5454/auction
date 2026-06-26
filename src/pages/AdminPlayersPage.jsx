@@ -3,10 +3,13 @@ import { supabase } from '../services/supabase';
 import { uploadToCloudinary, deleteFromCloudinary, getOptimizedImageUrl } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
 const AdminPlayersPage = () => {
   const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
+  const [searchParams] = useSearchParams();
+  const auctionCode = searchParams.get('code') || localStorage.getItem('cap_admin_selected_auction_code');
+
   const [activeAuction, setActiveAuction] = useState(null);
   const [playersList, setPlayersList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,19 +43,23 @@ const AdminPlayersPage = () => {
       return;
     }
     fetchData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, auctionCode]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      if (!auctionCode) {
+        setLoading(false);
+        return;
+      }
+
       const { data: auctionData, error: auctionError } = await supabase
         .from('auctions')
         .select('*')
-        .in('status', ['registration_open', 'running'])
-        .limit(1)
-        .single();
+        .eq('auction_code', auctionCode)
+        .maybeSingle();
 
-      if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
+      if (auctionError) throw auctionError;
       setActiveAuction(auctionData);
 
       if (auctionData) {
@@ -389,6 +396,7 @@ const AdminPlayersPage = () => {
   };
 
   if (!isAuthenticated) return <Navigate to="/admin" replace />;
+  if (!auctionCode || (!loading && !activeAuction)) return <Navigate to="/admin" replace />;
   if (loading) return <Loader message="LOADING ADMIN PLAYERS..." />;
 
   const filteredList = playersList.filter(p => {

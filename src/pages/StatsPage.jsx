@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { getOptimizedImageUrl } from '../services/cloudinary';
 import PageHeader from '../components/PageHeader';
@@ -6,6 +7,10 @@ import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
 
 const StatsPage = () => {
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code');
+    const [allAuctions, setAllAuctions] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [activeAuction, setActiveAuction] = useState(null);
     const [teams, setTeams] = useState([]);
@@ -20,53 +25,81 @@ const StatsPage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchPublicStatsData = async (auctionId = null) => {
+    const fetchRealtimeStats = async (auctionId) => {
         try {
-            let currentAuctionId = auctionId;
-            if (!currentAuctionId) {
-                const { data: auctionData, error: auctionError } = await supabase
-                    .from('auctions')
-                    .select('*')
-                    .in('status', ['registration_open', 'running'])
-                    .limit(1)
-                    .single();
-
-                if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
-                if (!auctionData) {
-                    setLoading(false);
-                    return;
-                }
-                setActiveAuction(auctionData);
-                currentAuctionId = auctionData.id;
-            }
-
-            // Fetch Teams
-            const { data: tData, error: tError } = await supabase
+            const { data: tData } = await supabase
                 .from('auction_teams')
                 .select('*')
-                .eq('auction_id', currentAuctionId);
-            if (tError) throw tError;
+                .eq('auction_id', auctionId);
             setTeams(tData || []);
 
-            // Fetch all approved auction players
-            const { data: apData, error: apError } = await supabase
+            const { data: apData } = await supabase
                 .from('auction_players')
                 .select('*, players(*)')
-                .eq('auction_id', currentAuctionId)
+                .eq('auction_id', auctionId)
                 .eq('approval_status', 'approved');
-            if (apError) throw apError;
-
             setPlayers(apData || []);
         } catch (err) {
-            console.error("Error fetching stats data:", err);
-        } finally {
-            setLoading(false);
+            console.error("Realtime fetch stats error:", err);
         }
     };
 
     useEffect(() => {
-        fetchPublicStatsData();
-    }, []);
+        const fetchStatsAndAuctions = async () => {
+            try {
+                setLoading(true);
+                if (auctionCode) {
+                    const { data: auctionData, error: auctionError } = await supabase
+                        .from('auctions')
+                        .select('*')
+                        .eq('auction_code', auctionCode)
+                        .maybeSingle();
+
+                    if (auctionError) throw auctionError;
+                    setActiveAuction(auctionData);
+
+                    if (auctionData) {
+                        // Fetch Teams
+                        const { data: tData, error: tError } = await supabase
+                            .from('auction_teams')
+                            .select('*')
+                            .eq('auction_id', auctionData.id);
+                        if (tError) throw tError;
+                        setTeams(tData || []);
+
+                        // Fetch all approved auction players
+                        const { data: apData, error: apError } = await supabase
+                            .from('auction_players')
+                            .select('*, players(*)')
+                            .eq('auction_id', auctionData.id)
+                            .eq('approval_status', 'approved');
+                        if (apError) throw apError;
+
+                        setPlayers(apData || []);
+                    } else {
+                        setTeams([]);
+                        setPlayers([]);
+                    }
+                } else {
+                    setActiveAuction(null);
+                    const { data, error } = await supabase
+                        .from('auctions')
+                        .select('*')
+                        .neq('status', 'draft')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    setAllAuctions(data || []);
+                }
+            } catch (err) {
+                console.error("Error fetching stats data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStatsAndAuctions();
+    }, [auctionCode]);
 
     useEffect(() => {
         if (!activeAuction?.id) return;
@@ -74,7 +107,7 @@ const StatsPage = () => {
         const subscription = supabase
             .channel('stats_realtime_updates')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_players' }, () => {
-                fetchPublicStatsData(activeAuction.id);
+                fetchRealtimeStats(activeAuction.id);
             })
             .subscribe();
 
@@ -87,9 +120,44 @@ const StatsPage = () => {
     if (!activeAuction) {
         return (
             <div className="flex-col min-h-screen">
-                <PageHeader title="AUCTION STATS" showLogos={false} />
-                <main className="container flex-col items-center justify-center text-center" style={{ flex: 1, padding: '4rem 1rem' }}>
-                    <EmptyState title="No Active Auction" description="Statistics will be available once an auction registration opens or starts." />
+                <div className="spotlight"></div>
+                <PageHeader title="AUCTION STATISTICS" showLogos={false} />
+                <main className="container" style={{ flex: 1, padding: '2rem 1rem 4rem', zIndex: 1, position: 'relative' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                            <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Select Tournament to View Stats</h3>
+                            <p className="text-muted" style={{ marginBottom: 0 }}>Please select a tournament from the list below to view its statistics.</p>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                            {allAuctions.length === 0 ? (
+                                <div className="glass-panel" style={{ padding: '3rem', gridColumn: '1 / -1', textAlign: 'center' }}>
+                                    <p className="text-muted" style={{ margin: 0 }}>No tournaments found.</p>
+                                </div>
+                            ) : (
+                                allAuctions.map(a => (
+                                    <Link key={a.id} to={`/stats?code=${a.auction_code}`} className="glass-panel render-card" style={{ padding: '2rem 1.5rem', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--glass-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ 
+                                                padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase',
+                                                background: a.status === 'running' ? 'rgba(239, 68, 68, 0.15)' : a.status === 'registration_open' ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.06)',
+                                                color: a.status === 'running' ? '#f87171' : a.status === 'registration_open' ? 'var(--accent-green)' : 'var(--text-muted)'
+                                            }}>
+                                                {a.status === 'running' ? '🔴 Live' : a.status === 'registration_open' ? '🟢 Open' : '⚪ Ended'}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{a.auction_code}</span>
+                                        </div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>{a.auction_name}</h3>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {a.venue ? `📍 ${a.venue}` : ''}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', color: 'var(--accent-green)', fontWeight: 'bold', fontSize: '0.85rem', alignItems: 'center', gap: '0.25rem' }}>
+                                            View Stats →
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </main>
             </div>
         );

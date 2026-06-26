@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Loader } from '../components/Loader';
 import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const LiveAuctionProjectorPage = () => {
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code');
+    const [allAuctions, setAllAuctions] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [activeAuction, setActiveAuction] = useState(null);
     const [activePlayer, setActivePlayer] = useState(null);
@@ -31,13 +36,28 @@ const LiveAuctionProjectorPage = () => {
     const fetchData = async () => {
         try {
             console.log("Fetching fresh projector data...");
-            const { data: auctionData } = await supabase
-                .from('auctions')
-                .select('*')
-                .in('status', ['registration_open', 'running'])
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+            let auctionData = null;
+            if (auctionCode) {
+                const { data } = await supabase
+                    .from('auctions')
+                    .select('*')
+                    .eq('auction_code', auctionCode)
+                    .maybeSingle();
+                auctionData = data;
+            } else {
+                const { data, error } = await supabase
+                    .from('auctions')
+                    .select('*')
+                    .neq('status', 'draft')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setAllAuctions(data || []);
+                setActiveAuction(null);
+                setTeams([]);
+                setActivePlayer(null);
+                return;
+            }
 
             setActiveAuction(auctionData);
 
@@ -204,7 +224,7 @@ const LiveAuctionProjectorPage = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             clearInterval(heartbeat);
         };
-    }, []);
+    }, [auctionCode]);
 
     useEffect(() => {
         setImageError(false);
@@ -337,7 +357,121 @@ const LiveAuctionProjectorPage = () => {
                 </div>
 
                 {/* Main Content */}
-                {!activePlayer && !showSoldOverlay && !showUnsoldOverlay ? (
+                {!activeAuction ? (
+                    <div style={{
+                        flex: 1, display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        maxWidth: '800px', margin: '0 auto', width: '100%',
+                        padding: '2rem 1rem'
+                    }}>
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 215, 0, 0.2)',
+                            borderRadius: '16px',
+                            padding: '3rem 2rem',
+                            textAlign: 'center',
+                            width: '100%',
+                            boxShadow: '0 15px 40px rgba(0, 0, 0, 0.5)',
+                            marginBottom: '2rem'
+                        }}>
+                            <h1 style={{
+                                color: '#ffd700',
+                                fontFamily: 'var(--font-heading)',
+                                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                margin: '0 0 1rem 0',
+                                letterSpacing: '2px',
+                                textTransform: 'uppercase'
+                            }}>
+                                Select Live Projector
+                            </h1>
+                            <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: 'clamp(0.9rem, 1.5vw, 1.1rem)' }}>
+                                Choose an ongoing tournament to launch the real-time live auction projector screen.
+                            </p>
+                        </div>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                            gap: '1.5rem',
+                            width: '100%'
+                        }}>
+                            {allAuctions.length === 0 ? (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid rgba(255,255,255,0.05)',
+                                    borderRadius: '12px',
+                                    padding: '3rem',
+                                    gridColumn: '1 / -1',
+                                    textAlign: 'center'
+                                }}>
+                                    <p style={{ color: 'rgba(255,255,255,0.4)', margin: 0 }}>No active tournaments found.</p>
+                                </div>
+                            ) : (
+                                allAuctions.map(a => (
+                                    <Link
+                                        key={a.id}
+                                        to={`/live-auction-projector?code=${a.auction_code}`}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.03)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '12px',
+                                            padding: '1.5rem',
+                                            textDecoration: 'none',
+                                            color: 'inherit',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '1rem',
+                                            transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
+                                            cursor: 'pointer'
+                                        }}
+                                        className="projector-card-hover"
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-5px)';
+                                            e.currentTarget.style.borderColor = '#ffd700';
+                                            e.currentTarget.style.boxShadow = '0 10px 20px rgba(255, 215, 0, 0.1)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{
+                                                padding: '0.2rem 0.6rem',
+                                                borderRadius: '4px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
+                                                background: a.status === 'running' ? 'rgba(239, 68, 68, 0.15)' : a.status === 'registration_open' ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.06)',
+                                                color: a.status === 'running' ? '#f87171' : a.status === 'registration_open' ? '#39ff14' : 'rgba(255,255,255,0.4)'
+                                            }}>
+                                                {a.status === 'running' ? '🔴 Live' : a.status === 'registration_open' ? '🟢 Open' : '⚪ Ended'}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: '#ffd700', fontWeight: 'bold' }}>{a.auction_code}</span>
+                                        </div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>{a.auction_name}</h3>
+                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+                                            {a.venue ? `📍 ${a.venue}` : ''}
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'flex-end',
+                                            marginTop: 'auto',
+                                            color: '#39ff14',
+                                            fontWeight: 'bold',
+                                            fontSize: '0.85rem',
+                                            alignItems: 'center',
+                                            gap: '0.25rem'
+                                        }}>
+                                            Launch Projector →
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                ) : !activePlayer && !showSoldOverlay && !showUnsoldOverlay ? (
                     <div style={{
                         flex: 1, display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center',

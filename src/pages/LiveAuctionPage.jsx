@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { getOptimizedImageUrl } from '../services/cloudinary';
 
 const LiveAuctionPage = () => {
     const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code') || localStorage.getItem('cap_admin_selected_auction_code');
+
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('bidding'); // 'bidding' or 'sold'
@@ -80,17 +83,21 @@ const LiveAuctionPage = () => {
         return () => {
             supabase.removeChannel(subscription);
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, auctionCode]);
 
     const fetchData = async () => {
         try {
-            // Fetch Active Auction
+            if (!auctionCode) {
+                setLoading(false);
+                return;
+            }
+
+            // Fetch Active Auction by Code
             const { data: auctionData, error: auctionError } = await supabase
                 .from('auctions')
                 .select('*')
-                .in('status', ['registration_open', 'running'])
-                .limit(1)
-                .single();
+                .eq('auction_code', auctionCode)
+                .maybeSingle();
 
             if (auctionError && auctionError.code !== 'PGRST116') throw auctionError;
             setActiveAuction(auctionData);
@@ -511,6 +518,7 @@ const LiveAuctionPage = () => {
     };
 
     if (!isAuthenticated) return <Navigate to="/admin" replace />;
+    if (!auctionCode || (!loading && !activeAuction)) return <Navigate to="/admin" replace />;
     if (loading) return <Loader message="OPENING AUCTION STADIUM..." />;
 
     const pendingPlayers = players.filter(p => {

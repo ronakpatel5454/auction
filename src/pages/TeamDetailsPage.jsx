@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import PageHeader from '../components/PageHeader';
 import { Loader } from '../components/Loader';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { getOptimizedImageUrl } from '../services/cloudinary';
 import { generateAllTeamsPDF } from '../services/pdfGenerator';
 import { Download } from 'lucide-react';
 
 const TeamDetailsPage = () => {
     const isAuthenticated = localStorage.getItem('cap_admin_auth') === 'true';
+    const [searchParams] = useSearchParams();
+    const auctionCode = searchParams.get('code') || localStorage.getItem('cap_admin_selected_auction_code');
+
     const [loading, setLoading] = useState(true);
     const [activeAuction, setActiveAuction] = useState(null);
     const [teams, setTeams] = useState([]);
@@ -41,16 +44,20 @@ const TeamDetailsPage = () => {
         return () => {
             supabase.removeChannel(subscription);
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, auctionCode]);
 
     const fetchData = async () => {
         try {
+            if (!auctionCode) {
+                setLoading(false);
+                return;
+            }
+
             const { data: auctionData } = await supabase
                 .from('auctions')
                 .select('*')
-                .in('status', ['registration_open', 'running'])
-                .limit(1)
-                .single();
+                .eq('auction_code', auctionCode)
+                .maybeSingle();
 
             setActiveAuction(auctionData);
 
@@ -82,6 +89,7 @@ const TeamDetailsPage = () => {
     };
 
     if (!isAuthenticated) return <Navigate to="/admin" replace />;
+    if (!auctionCode || (!loading && !activeAuction)) return <Navigate to="/admin" replace />;
     if (loading) return <Loader message="ORGANIZING TEAM ROSTERS..." />;
 
     const selectedTeam = teams.find(t => t.id === selectedTeamId);
