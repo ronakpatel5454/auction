@@ -1,4 +1,4 @@
-import{c as $}from"./Loader-CjwIOsXP.js";import{E as u,a as D}from"./jspdf.plugin.autotable-CKKXZKJr.js";/**
+import{c as $}from"./Loader-M6mtH_Uh.js";import{E as u,a as D}from"./jspdf.plugin.autotable-CSUDci9B.js";/**
  * @license lucide-react v1.7.0 - ISC
  *
  * This source code is licensed under the ISC license.
